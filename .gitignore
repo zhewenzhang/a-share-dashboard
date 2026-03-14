@@ -1,0 +1,34 @@
+# 环境变量
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Node
+node_modules/
+# 保留 frontend/dist 用于部署
+# dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 数据文件
+data/*.db
+data/*.sqlite
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db

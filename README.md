@@ -1,71 +1,316 @@
-# A股市场看板
+# 📊 A 股资金追踪系统
 
-每日投资检讨工具 - A股市场实时监控
+<div align="center">
 
-## 访问地址
+**专业的 A 股资金流向追踪与智能投顾系统**
 
-**GitHub Pages**: https://zhewenzhang.github.io/a-share-dashboard/
+[![Version](https://img.shields.io/github/v/release/zhewenzhang/a-share-dashboard?label=Version&color=blue)](https://github.com/zhewenzhang/a-share-dashboard/releases)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
 
-## 功能特性
+[📖 项目设计](PROJECT_DESIGN.md) | [🚀 在线演示](https://zhewenzhang.github.io/a-share-dashboard/) | [📝 更新日志](CHANGELOG.md)
 
-- 📊 三大指数实时行情（上证/深证/创业板/沪深300）
-- 📈 涨跌统计（上涨/下跌/平盘家数）
-- 🔥 板块涨幅榜 TOP10
-- 💰 资金流向（北向/南向/主力）
-- ⭐ 重要股票监控列表
-
-## 部署方式
-
-### 方式一：GitHub Pages（推荐）
-1. 创建GitHub仓库：`a-share-dashboard`
-2. 上传 `index.html`
-3. Settings → Pages → Main branch → Save
-4. 访问：`https://你的用户名.github.io/a-share-dashboard/`
-
-### 方式二：本地预览
-```bash
-cd a-share-dashboard
-python3 -m http.server 8080
-# 访问 http://localhost:8080
-```
-
-## 数据来源
-
-- **生产环境**：TuShare API（需要配置token）
-- **演示环境**：模拟数据（展示用）
-
-## 配置TuShare API
-
-在代码中替换 `generateMockData()` 函数为真实的TuShare API调用：
-
-```javascript
-async function fetchRealData() {
-    const response = await fetch('https://api.tushare.pro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            api_name: 'daily',
-            token: '你的TUshare_TOKEN'
-        })
-    });
-    return response.json();
-}
-```
-
-## 刷新频率
-
-- 手动点击"刷新"按钮
-- 可配置自动刷新（每5分钟）
-
-## 技术栈
-
-- HTML5 + CSS3
-- JavaScript (原生)
-- ECharts 图表库
-- 响应式设计
+</div>
 
 ---
 
-**作者**: 可乐 🤖
-**版本**: 1.0.0
-**更新**: 2026-02-16
+## 🌟 项目简介
+
+A 股资金追踪系统是一个专业的股票资金流向分析平台，基于 TuShare 数据实时监控股市资金动向，提供智能板块/个股推荐、投资组合管理、风险预警、策略回测和模拟交易功能。
+
+### 核心能力
+
+- 🔍 **资金流向追踪** - 实时监控主力/北向/板块资金动向
+- 📈 **智能选股推荐** - 基于资金强度评分 (0-100) 生成股票池
+- 💼 **投资组合管理** - 持仓跟踪、盈亏计算、风险分析
+- ⚠️ **风险预警系统** - 价格/资金/持仓多维度预警
+- 🧪 **策略回测引擎** - 历史数据验证策略有效性
+- 🎯 **模拟交易** - 实时模拟盘运行，零风险验证策略
+
+---
+
+## 🚀 快速开始
+
+### 在线演示
+
+访问 GitHub Pages 查看演示：
+
+👉 **https://zhewenzhang.github.io/a-share-dashboard/**
+
+> ⚠️ 当前演示使用模拟数据，配置 TuShare Token 后显示真实数据
+
+### 本地部署
+
+#### 1. 克隆项目
+
+```bash
+git clone https://github.com/zhewenzhang/a-share-dashboard.git
+cd a-share-dashboard
+```
+
+#### 2. 配置 TuShare Token
+
+```bash
+# 复制环境变量示例文件
+cp .env.example .env
+
+# 编辑 .env 文件，填入你的 TuShare Token
+# 访问 https://tushare.pro 注册并获取 Token
+```
+
+#### 3. 安装后端依赖
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+#### 4. 启动后端服务
+
+```bash
+# 方式一：直接运行
+python app/main.py
+
+# 方式二：使用 uvicorn
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+#### 5. 访问应用
+
+- **前端页面**: http://localhost:8000
+- **API 文档**: http://localhost:8000/docs
+
+---
+
+## 📁 项目结构
+
+```
+a-share-dashboard/
+├── backend/                     # 后端服务 (FastAPI)
+│   ├── app/
+│   │   ├── core/                # 核心配置
+│   │   │   └── config.py        # 应用配置
+│   │   ├── services/            # 业务服务
+│   │   │   ├── tushare_service.py   # TuShare 数据服务
+│   │   │   └── capital_analyzer.py  # 资金分析引擎
+│   │   └── main.py              # FastAPI 应用入口
+│   └── requirements.txt         # Python 依赖
+│
+├── frontend/                    # 前端页面
+│   ├── dist/
+│   │   └── index.html           # 资金看板页面
+│   └── package.json             # Node.js 配置
+│
+├── docs/                        # 文档
+│   ├── PROJECT_DESIGN.md        # 项目设计文档
+│   └── CHANGELOG.md             # 更新日志
+│
+├── .env.example                 # 环境变量示例
+├── .gitignore                   # Git 忽略文件
+├── VERSION                      # 版本号
+└── README.md                    # 项目说明
+```
+
+---
+
+## 📊 功能特性
+
+### 第一阶段：资金流向追踪（✅ 已完成）
+
+| 功能 | 描述 | 状态 |
+|------|------|------|
+| **实时指数看板** | 上证/深证/创业板/沪深 300 实时行情 | ✅ |
+| **板块资金流向** | 行业/概念板块资金流入排名 | ✅ |
+| **智能选股推荐** | 基于资金强度评分生成推荐列表 | ✅ |
+| **资金强度评分** | 0-100 分量化资金强度 | ✅ |
+| **个股资金追踪** | 单只股票资金流入流出监控 | 🔄 |
+| **北向资金监控** | 沪深股通持股变化 | 🔄 |
+
+### 第二阶段：投资组合管理（📋 规划中）
+
+- 持仓管理 / 每日盈亏计算
+- 价格预警 / 资金流出预警
+- 风险指标（最大回撤、夏普比率）
+
+### 第三阶段：回测与模拟（📋 规划中）
+
+- 策略历史回测
+- 绩效评估体系
+- 模拟交易运行
+
+---
+
+## 🔧 API 接口
+
+### 健康检查
+
+```bash
+GET /api/health
+```
+
+### 资金流向
+
+```bash
+# 获取个股资金流向
+GET /api/capital-flow/{ts_code}
+
+# 获取历史资金流向
+GET /api/capital-flow/history/{ts_code}?start_date=20240101&end_date=20240114
+
+# 分析资金强度
+GET /api/capital-flow/analysis/{ts_code}?days=10
+```
+
+### 智能推荐
+
+```bash
+# 获取股票推荐列表
+GET /api/recommendations?top_n=20&industry=半导体
+```
+
+### 板块资金
+
+```bash
+# 获取板块资金流向排行
+GET /api/sectors/flow
+```
+
+### 指数行情
+
+```bash
+# 获取主要指数
+GET /api/indices
+```
+
+---
+
+## 📈 资金强度评分算法
+
+```python
+资金强度评分 = (
+    主力净流入占比 × 40% +    # 大单/特大单净流入占成交额比例
+    连续性评分 × 30% +       # 连续 N 日主力净流入
+    加速度评分 × 20% +       # 资金流入加速度
+    北向变化评分 × 10%       # 北向资金持股变化
+)
+```
+
+### 评分等级
+
+| 评分 | 等级 | 建议 |
+|------|------|------|
+| 80-100 | 🔥 极强 | 强烈买入 |
+| 60-79 | 📈 良好 | 买入 |
+| 40-59 | ⚠️ 中性 | 观察 |
+| 0-39 | 📉 弱势 | 谨慎 |
+
+---
+
+## 🔐 配置说明
+
+### TuShare Token
+
+在 `.env` 文件中配置：
+
+```bash
+# TuShare API Token
+TUSHARE_TOKEN=your_token_here
+
+# 数据库配置
+DATABASE_URL=sqlite:///./data/ashare.db
+
+# 服务配置
+BACKEND_URL=http://localhost:8000
+LOG_LEVEL=INFO
+```
+
+### 获取 TuShare Token
+
+1. 访问 https://tushare.pro
+2. 注册账号
+3. 进入个人中心获取 Token
+4. 需要一定积分才能访问高级接口
+
+---
+
+## 🛠️ 技术栈
+
+### 后端
+- **FastAPI** - 高性能 Web 框架
+- **TuShare** - A 股数据源
+- **Pandas** - 数据处理
+- **Pydantic** - 数据验证
+
+### 前端
+- **HTML5/CSS3** - 原生开发
+- **ECharts 5** - 图表可视化
+- **Vanilla JS** - 轻量级实现
+
+---
+
+## 📋 开发计划
+
+### 第一阶段 (✅ 已完成)
+- [x] 项目初始化
+- [x] TuShare 数据接入
+- [x] 资金分析引擎
+- [x] 前端资金看板
+- [x] 智能推荐功能
+
+### 第二阶段 (📋 规划中)
+- [ ] 投资组合管理模块
+- [ ] 预警系统开发
+- [ ] 风险指标计算
+
+### 第三阶段 (📋 规划中)
+- [ ] 回测引擎开发
+- [ ] 绩效评估体系
+- [ ] 模拟交易模块
+
+---
+
+## 📝 更新日志
+
+查看 [CHANGELOG.md](CHANGELOG.md) 了解完整更新历史。
+
+### v1.0.0 (2026-03-14)
+- ✨ 初始版本发布
+- ✨ 资金流向看板
+- ✨ 智能选股推荐
+- ✨ 板块资金排行
+
+---
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+---
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+---
+
+## 📞 联系方式
+
+- **作者**: zhewenzhang
+- **项目**: https://github.com/zhewenzhang/a-share-dashboard
+
+---
+
+<div align="center">
+
+**如果这个项目对你有帮助，请给一个 ⭐️ Star 支持！**
+
+Made with ❤️ by AI Assistant
+
+</div>

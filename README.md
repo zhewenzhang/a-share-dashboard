@@ -2,12 +2,12 @@
 
 <div align="center">
 
-**专业的 A 股资金流向追踪与智能投顾系统**
+**专业的 A 股资金流向追踪与智能投顾平台**
 
-[![Version](https://img.shields.io/github/v/release/zhewenzhang/a-share-dashboard?label=Version&color=blue)](https://github.com/zhewenzhang/a-share-dashboard/releases)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
+[![Version](https://img.shields.io/github/v/release/zhewenzhang/a-share-dashboard?label=Version&color=6366f1)](https://github.com/zhewenzhang/a-share-dashboard/releases)
+[![License](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9+-6366f1.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-6366f1.svg)](https://fastapi.tiangolo.com/)
 
 [📖 项目设计](PROJECT_DESIGN.md) | [🚀 在线演示](https://zhewenzhang.github.io/a-share-dashboard/) | [📝 更新日志](CHANGELOG.md)
 
@@ -19,7 +19,7 @@
 
 A 股资金追踪系统是一个专业的股票资金流向分析平台，基于 TuShare 数据实时监控股市资金动向，提供智能板块/个股推荐、投资组合管理、风险预警、策略回测和模拟交易功能。
 
-### 核心能力
+### ✨ 核心特性
 
 - 🔍 **资金流向追踪** - 实时监控主力/北向/板块资金动向
 - 📈 **智能选股推荐** - 基于资金强度评分 (0-100) 生成股票池
@@ -38,7 +38,14 @@ A 股资金追踪系统是一个专业的股票资金流向分析平台，基于
 
 👉 **https://zhewenzhang.github.io/a-share-dashboard/**
 
-> ⚠️ 当前演示使用模拟数据，配置 TuShare Token 后显示真实数据
+> 💡 当前演示使用模拟数据，配置 TuShare Token 后显示真实数据
+
+### 配置 TuShare
+
+1. 访问页面点击右上角 ⚙️ 设置
+2. 输入你的 TuShare Token
+3. 选择数据源为 "TuShare API"
+4. 点击保存即可
 
 ### 本地部署
 
@@ -49,24 +56,14 @@ git clone https://github.com/zhewenzhang/a-share-dashboard.git
 cd a-share-dashboard
 ```
 
-#### 2. 配置 TuShare Token
-
-```bash
-# 复制环境变量示例文件
-cp .env.example .env
-
-# 编辑 .env 文件，填入你的 TuShare Token
-# 访问 https://tushare.pro 注册并获取 Token
-```
-
-#### 3. 安装后端依赖
+#### 2. 安装后端依赖
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-#### 4. 启动后端服务
+#### 3. 启动后端服务
 
 ```bash
 # 方式一：直接运行
@@ -76,7 +73,7 @@ python app/main.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-#### 5. 访问应用
+#### 4. 访问应用
 
 - **前端页面**: http://localhost:8000
 - **API 文档**: http://localhost:8000/docs
@@ -106,6 +103,7 @@ a-share-dashboard/
 │   ├── PROJECT_DESIGN.md        # 项目设计文档
 │   └── CHANGELOG.md             # 更新日志
 │
+├── index.html                   # 主页面 (GitHub Pages 部署)
 ├── .env.example                 # 环境变量示例
 ├── .gitignore                   # Git 忽略文件
 ├── VERSION                      # 版本号
@@ -124,20 +122,22 @@ a-share-dashboard/
 | **板块资金流向** | 行业/概念板块资金流入排名 | ✅ |
 | **智能选股推荐** | 基于资金强度评分生成推荐列表 | ✅ |
 | **资金强度评分** | 0-100 分量化资金强度 | ✅ |
-| **个股资金追踪** | 单只股票资金流入流出监控 | 🔄 |
-| **北向资金监控** | 沪深股通持股变化 | 🔄 |
+| **个股资金追踪** | 单只股票资金流入流出监控 | ✅ |
+| **TuShare 配置** | 网页内配置 API Token | ✅ |
+| **侧边栏导航** | 现代化侧边栏布局 | ✅ |
 
-### 第二阶段：投资组合管理（📋 规划中）
+### 第二阶段：投资组合管理（🔄 开发中）
 
-- 持仓管理 / 每日盈亏计算
-- 价格预警 / 资金流出预警
-- 风险指标（最大回撤、夏普比率）
+- [ ] 持仓管理模块
+- [ ] 每日盈亏计算
+- [ ] 价格预警 / 资金流出预警
+- [ ] 风险指标（最大回撤、夏普比率）
 
 ### 第三阶段：回测与模拟（📋 规划中）
 
-- 策略历史回测
-- 绩效评估体系
-- 模拟交易运行
+- [ ] 策略历史回测
+- [ ] 绩效评估体系
+- [ ] 模拟交易运行
 
 ---
 
@@ -188,7 +188,7 @@ GET /api/indices
 ## 📈 资金强度评分算法
 
 ```python
-资金强度评分 = (
+评分 = (
     主力净流入占比 × 40% +    # 大单/特大单净流入占成交额比例
     连续性评分 × 30% +       # 连续 N 日主力净流入
     加速度评分 × 20% +       # 资金流入加速度
@@ -211,26 +211,15 @@ GET /api/indices
 
 ### TuShare Token
 
-在 `.env` 文件中配置：
-
-```bash
-# TuShare API Token
-TUSHARE_TOKEN=your_token_here
-
-# 数据库配置
-DATABASE_URL=sqlite:///./data/ashare.db
-
-# 服务配置
-BACKEND_URL=http://localhost:8000
-LOG_LEVEL=INFO
-```
-
-### 获取 TuShare Token
-
 1. 访问 https://tushare.pro
 2. 注册账号
 3. 进入个人中心获取 Token
-4. 需要一定积分才能访问高级接口
+4. 在网页设置中配置 Token
+
+### 数据源切换
+
+- **模拟数据** - 演示模式，无需配置
+- **TuShare API** - 真实数据，需要 Token
 
 ---
 
@@ -243,9 +232,9 @@ LOG_LEVEL=INFO
 - **Pydantic** - 数据验证
 
 ### 前端
-- **HTML5/CSS3** - 原生开发
+- **原生 HTML/CSS/JS** - 轻量级实现
 - **ECharts 5** - 图表可视化
-- **Vanilla JS** - 轻量级实现
+- **现代 CSS** - Flexbox/Grid布局
 
 ---
 
@@ -255,10 +244,12 @@ LOG_LEVEL=INFO
 - [x] 项目初始化
 - [x] TuShare 数据接入
 - [x] 资金分析引擎
-- [x] 前端资金看板
+- [x] 现代化 UI 设计
+- [x] 侧边栏导航
+- [x] TuShare 配置功能
 - [x] 智能推荐功能
 
-### 第二阶段 (📋 规划中)
+### 第二阶段 (🔄 开发中)
 - [ ] 投资组合管理模块
 - [ ] 预警系统开发
 - [ ] 风险指标计算
@@ -273,6 +264,21 @@ LOG_LEVEL=INFO
 ## 📝 更新日志
 
 查看 [CHANGELOG.md](CHANGELOG.md) 了解完整更新历史。
+
+### v2.0.0 (2026-03-14)
+- ✨ 全新现代化 UI 设计
+- ✨ 侧边栏导航布局
+- ✨ TuShare 网页内配置
+- ✨ 本地存储配置
+- ✨ Toast 通知系统
+- ✨ 详情弹窗优化
+
+### v1.1.0 (2026-03-14)
+- ✨ 个股搜索功能
+- ✨ 行业筛选功能
+- ✨ 股票列表排序
+- ✨ 详情弹窗
+- ✨ 导出功能
 
 ### v1.0.0 (2026-03-14)
 - ✨ 初始版本发布

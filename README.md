@@ -4,7 +4,7 @@
 
 **专业的 A 股资金流向追踪与智能投顾平台**
 
-[![Version](https://img.shields.io/github/v/release/zhewenzhang/a-share-dashboard?label=Version&color=6366f1)](https://github.com/zhewenzhang/a-share-dashboard/releases)
+[![Version](https://img.shields.io/github/v/release/zhewenzhang/a-share-dashboard?label=Version&color=6366f1)](https://github.com/zhewenzhang/a-share-dashboard/releases/latest)
 [![License](https://img.shields.io/badge/License-MIT-6366f1.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9+-6366f1.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-6366f1.svg)](https://fastapi.tiangolo.com/)

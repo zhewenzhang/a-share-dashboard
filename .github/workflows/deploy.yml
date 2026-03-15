@@ -28,6 +28,14 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
+      - name: Copy HTML files to frontend/dist
+        run: |
+          mkdir -p ./frontend/dist
+          cp -f ./index.html ./frontend/dist/
+          cp -f ./portfolio.html ./frontend/dist/
+          cp -f ./backtest.html ./frontend/dist/
+          cp -f ./simulate.html ./frontend/dist/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

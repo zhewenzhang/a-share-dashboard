@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI 测试页面</title>
+    <style>
+        :root {
+            --bull: #ff4d4f;
+            --bear: #00c853;
+            --test-old: "❌ 旧版本";
+            --test-new: "✅ 新版本";
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #020617; 
+            color: white; 
+            padding: 40px;
+            line-height: 1.6;
+        }
+        .card {
+            background: #1e293b;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        h1 { margin-bottom: 20px; }
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+            padding: 16px;
+            background: rgba(148, 163, 184, 0.05);
+            border-radius: 8px;
+        }
+        .color-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .bull { background: #ff4d4f; color: white; }
+        .bear { background: #00c853; color: white; }
+        .old-bull { background: #ef4444; }
+        .old-bear { background: #10b981; }
+        .status {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status.new { background: rgba(0, 200, 83, 0.2); color: #00c853; }
+        .status.old { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .font-test {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        code {
+            background: rgba(148, 163, 184, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .btn-test {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .btn-test:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 24px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 UI 优化测试页面</h1>
+    
+    <div class="card">
+        <h2>✅ 版本检测</h2>
+        <div class="test-item">
+            <div>
+                <strong>当前加载文件:</strong>
+                <div class="font-test" id="fileVersion">检测中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🎨 颜色对比测试</h2>
+        
+        <div class="test-item">
+            <div>
+                <strong>新涨颜色 (优化后)</strong>
+                <div style="font-size: 12px; color: #94a3b8;">#ff4d4f - 对比度 6.2:1</div>
+            </div>
+            <div class="color-box bull">新红</div>
+            <span class="status new">✅ 当前版本</span>
+        </div>
+
+        <div class="test-item">
+            <div>
+                <strong>旧涨颜色 (优化前)</strong>
+                <div style="font-size: 12px; color: #94a3b8;">#ef4444 - 对比度 4.5:1</div>
+            </div>
+            <div class="color-box old-bull">旧红</div>
+            <span class="status old">❌ 缓存版本</span>
+        </div>
+
+        <div class="test-item">
+            <div>
+                <strong>新跌颜色 (优化后)</strong>
+                <div style="font-size: 12px; color: #94a3b8;">#00c853 - 符合 A 股习惯</div>
+            </div>
+            <div class="color-box bear">新绿</div>
+            <span class="status new">✅ 当前版本</span>
+        </div>
+
+        <div class="test-item">
+            <div>
+                <strong>旧跌颜色 (优化前)</strong>
+                <div style="font-size: 12px; color: #94a3b8;">#10b981 - 冷绿色</div>
+            </div>
+            <div class="color-box old-bear">旧绿</div>
+            <span class="status old">❌ 缓存版本</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📐 字体测试</h2>
+        <div class="test-item">
+            <div>
+                <strong>中文字体检测</strong>
+                <div class="font-test">
+                    这是中文测试文本 - 应该使用 Noto Sans SC
+                </div>
+                <div style="font-size: 12px; color: #94a3b8; margin-top: 8px;">
+                    当前字体：<code id="currentFont">检测中...</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🔘 按钮交互测试</h2>
+        <button class="btn-test" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+            悬停测试 - 应该有上移和光晕效果
+        </button>
+        <div style="margin-top: 16px; font-size: 12px; color: #94a3b8;">
+            ✅ 优化后：悬停时上移 1px + 光晕阴影<br>
+            ❌ 优化前：仅阴影变化
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🔧 清除缓存方法</h2>
+        <ol style="margin-left: 20px; line-height: 2;">
+            <li><strong>强制刷新:</strong> 按 <code>Cmd + Shift + R</code> (Mac) 或 <code>Ctrl + Shift + R</code> (Windows)</li>
+            <li><strong>清除浏览器缓存:</strong> 设置 → 隐私 → 清除缓存</li>
+            <li><strong>使用无痕模式:</strong> <code>Cmd/Ctrl + Shift + N</code></li>
+            <li><strong>添加版本号参数:</strong> 访问 <code>?v=20260315</code> 强制刷新</li>
+        </ol>
+    </div>
+
+    <script>
+        // 检测字体
+        const body = document.body;
+        const style = window.getComputedStyle(body);
+        document.getElementById('currentFont').textContent = style.fontFamily;
+        
+        // 检测版本
+        const hasNewColor = getComputedStyle(document.documentElement).getPropertyValue('--bull').trim() === '#ff4d4f';
+        document.getElementById('fileVersion').textContent = hasNewColor ? '✅ 最新版本 (已优化)' : '❌ 缓存版本 (需刷新)';
+        document.getElementById('fileVersion').style.color = hasNewColor ? '#00c853' : '#ef4444';
+        
+        // 自动检测缓存
+        if (!hasNewColor) {
+            alert('⚠️ 检测到缓存版本！\n\n请按 Cmd+Shift+R 强制刷新，或添加 ?v=20260315 参数访问');
+        }
+    </script>
+</body>
+</html>

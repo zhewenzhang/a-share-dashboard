@@ -651,38 +651,274 @@
             return `${year}${month}${day}`;
         }
 
-        function renderSectorChart() {
+        // 数据加载状态
+        let dataState = {
+            indices: [],
+            sectors: [],
+            recommendations: [],
+            loading: {
+                indices: false,
+                sectors: false,
+                recommendations: false
+            },
+            lastUpdate: null
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            checkApiStatus();
+            // 加载真实数据
+            loadAllData();
+        });
+
+        // 加载所有数据
+        async function loadAllData() {
+            await Promise.all([
+                loadIndices(),
+                loadSectors(),
+                loadRecommendations()
+            ]);
+            dataState.lastUpdate = new Date();
+            updateLastUpdateTime();
+        }
+
+        // 加载指数数据
+        async function loadIndices() {
+            dataState.loading.indices = true;
+            try {
+                const response = await fetch(`${API_CONFIG.baseUrl}/api/indices`);
+                const result = await response.json();
+                if (result.success) {
+                    dataState.indices = result.data;
+                    renderIndices(result.data);
+                }
+            } catch (error) {
+                console.error('加载指数数据失败:', error);
+            } finally {
+                dataState.loading.indices = false;
+            }
+        }
+
+        // 加载板块数据
+        async function loadSectors() {
+            dataState.loading.sectors = true;
+            try {
+                const response = await fetch(`${API_CONFIG.baseUrl}/api/sectors/flow`);
+                const result = await response.json();
+                if (result.success) {
+                    dataState.sectors = result.data;
+                    renderSectors(result.data);
+                    renderSectorChart(result.data);
+                }
+            } catch (error) {
+                console.error('加载板块数据失败:', error);
+            } finally {
+                dataState.loading.sectors = false;
+            }
+        }
+
+        // 加载推荐股票
+        async function loadRecommendations() {
+            dataState.loading.recommendations = true;
+            try {
+                const response = await fetch(`${API_CONFIG.baseUrl}/api/recommendations?top_n=10`);
+                const result = await response.json();
+                if (result.success) {
+                    dataState.recommendations = result.data;
+                    renderRecommendations(result.data);
+                }
+            } catch (error) {
+                console.error('加载推荐数据失败:', error);
+            } finally {
+                dataState.loading.recommendations = false;
+            }
+        }
+
+        // 渲染指数卡片
+        function renderIndices(indices) {
+            const container = document.querySelector('.index-grid');
+            if (!container || !indices.length) return;
+
+            const html = indices.map(idx => {
+                const isUp = idx.change_pct >= 0;
+                const changeClass = isUp ? 'bull' : 'bear';
+                const arrow = isUp ? '↑' : '↓';
+                
+                return `
+                    <div class="index-card" onclick="showIndexDetail('${idx.ts_code}')">
+                        <div class="index-name">${idx.name}</div>
+                        <div class="index-value ${changeClass}">${idx.close.toFixed(2)}</div>
+                        <div class="index-change ${changeClass}">${arrow} ${Math.abs(idx.change_pct).toFixed(2)}%</div>
+                        <div class="index-volume">成交额: ${formatVolume(idx.volume)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // 渲染板块列表
+        function renderSectors(sectors) {
+            const container = document.querySelector('.sector-list');
+            if (!container || !sectors.length) return;
+
+            const html = sectors.map((sector, index) => {
+                const isUp = sector.change_pct >= 0;
+                const changeClass = isUp ? 'bull' : 'bear';
+                
+                return `
+                    <div class="sector-item" onclick="showSectorDetail('${sector.sector_name}')">
+                        <div class="sector-rank">${index + 1}</div>
+                        <div class="sector-info">
+                            <div class="sector-name">${sector.sector_name}</div>
+                            <div class="sector-stocks">${sector.inflow_stock_count}/${sector.stock_count} 只净流入</div>
+                        </div>
+                        <div class="sector-flow ${changeClass}">${formatAmount(sector.net_amount)}</div>
+                        <div class="sector-change ${changeClass}">${isUp ? '+' : ''}${sector.change_pct.toFixed(2)}%</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // 渲染推荐股票
+        function renderRecommendations(stocks) {
+            const tbody = document.querySelector('.stock-table tbody');
+            if (!tbody || !stocks.length) return;
+
+            const html = stocks.map((stock, index) => {
+                const isUp = stock.change_pct >= 0;
+                const changeClass = isUp ? 'bull' : 'bear';
+                const recClass = stock.recommendation_type === 'STRONG_BUY' ? 'strong-buy' : 'buy';
+                
+                return `
+                    <tr onclick="showStockDetail('${stock.ts_code}')">
+                        <td>${index + 1}</td>
+                        <td><span class="stock-code">${stock.ts_code}</span></td>
+                        <td>${stock.name}</td>
+                        <td>¥${stock.price.toFixed(2)}</td>
+                        <td class="${changeClass}">${isUp ? '+' : ''}${stock.change_pct.toFixed(2)}%</td>
+                        <td><span class="score-badge">${stock.score.toFixed(1)}</span></td>
+                        <td class="${stock.net_amount >= 0 ? 'bull' : 'bear'}">${formatAmount(stock.net_amount)}</td>
+                        <td>${stock.continuous_days}天</td>
+                        <td>${stock.industry}</td>
+                        <td><span class="recommendation ${recClass}">${stock.recommendation_type}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = html;
+        }
+
+        // 渲染板块图表
+        function renderSectorChart(sectors) {
+            if (!sectors.length) return;
+            
             if (sectorChart) sectorChart.dispose();
             sectorChart = echarts.init(document.getElementById('sectorChart'), 'dark', { backgroundColor: 'transparent' });
+            
+            const data = sectors.slice(0, 10).reverse();
             const option = {
-                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                tooltip: { 
+                    trigger: 'axis', 
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        const item = data[params[0].dataIndex];
+                        return `${item.sector_name}<br/>净流入: ${formatAmount(item.net_amount)}<br/>涨跌: ${item.change_pct.toFixed(2)}%`;
+                    }
+                },
                 grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
-                xAxis: { type: 'value', axisLabel: { formatter: '{value}万', color: '#64748b' }, axisLine: { lineStyle: { color: '#3f3f46' } }, splitLine: { lineStyle: { color: '#27272a' } } },
-                yAxis: { type: 'category', data: ['半导体','人工智能','光伏设备','汽车整车','医疗器械','软件开发','电池','通信设备','券商','家电'], axisLabel: { color: '#94a3b8' } },
+                xAxis: { 
+                    type: 'value', 
+                    axisLabel: { formatter: (value) => formatAmount(value), color: '#64748b' }, 
+                    axisLine: { lineStyle: { color: '#3f3f46' } }, 
+                    splitLine: { lineStyle: { color: '#27272a' } } 
+                },
+                yAxis: { 
+                    type: 'category', 
+                    data: data.map(s => s.sector_name), 
+                    axisLabel: { color: '#94a3b8' } 
+                },
                 series: [{
                     type: 'bar',
-                    data: [156, 123, 98, 85, 62, 51, 43, 32, 21, 12],
+                    data: data.map(s => ({
+                        value: s.net_amount,
+                        itemStyle: {
+                            color: s.net_amount >= 0 
+                                ? new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(0, 200, 83, 0.8)' }, { offset: 1, color: 'rgba(0, 200, 83, 0.4)' }])
+                                : new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(255, 77, 79, 0.8)' }, { offset: 1, color: 'rgba(255, 77, 79, 0.4)' }])
+                        }
+                    })),
                     barWidth: '60%',
-                    itemStyle: { borderRadius: [0, 8, 8, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(59, 130, 246, 0.8)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.8)' }]) },
-                    emphasis: { itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(59, 130, 246, 1)' }, { offset: 1, color: 'rgba(139, 92, 246, 1)' }]) } }
+                    itemStyle: { borderRadius: [0, 8, 8, 0] }
                 }]
             };
             sectorChart.setOption(option);
             window.addEventListener('resize', () => sectorChart.resize());
         }
 
+        // 格式化金额
+        function formatAmount(amount) {
+            if (amount === null || amount === undefined) return '-';
+            const absAmount = Math.abs(amount);
+            if (absAmount >= 100000000) {
+                return (amount / 100000000).toFixed(2) + '亿';
+            } else if (absAmount >= 10000) {
+                return (amount / 10000).toFixed(2) + '万';
+            }
+            return amount.toFixed(2);
+        }
+
+        // 格式化成交量
+        function formatVolume(volume) {
+            if (volume === null || volume === undefined) return '-';
+            if (volume >= 100000000) {
+                return (volume / 100000000).toFixed(2) + '亿';
+            } else if (volume >= 10000) {
+                return (volume / 10000).toFixed(2) + '万';
+            }
+            return volume.toString();
+        }
+
+        // 更新时间显示
+        function updateLastUpdateTime() {
+            const timeEl = document.querySelector('.last-update');
+            if (timeEl && dataState.lastUpdate) {
+                timeEl.textContent = `更新于: ${dataState.lastUpdate.toLocaleTimeString()}`;
+            }
+        }
+
+        // 刷新数据
+        async function refreshData() {
+            showToast('正在刷新数据...', 'info');
+            await loadAllData();
+            showToast('数据已更新', 'success');
+        }
+
+        // 显示详情（占位函数）
+        function showIndexDetail(tsCode) {
+            showToast(`查看指数: ${tsCode}`, 'info');
+        }
+
+        function showSectorDetail(sectorName) {
+            showToast(`查看板块: ${sectorName}`, 'info');
+        }
+
+        function showStockDetail(tsCode) {
+            showToast(`查看股票: ${tsCode}`, 'info');
+        }
+
         function searchStock() {
-            const query = document.querySelector('.search-input').value.trim().toLowerCase();
-            showToast(`找到 ${Math.floor(Math.random() * 10) + 1} 只股票`, 'success');
+            const query = document.querySelector('.search-input').value.trim();
+            if (query) {
+                showToast(`搜索: ${query}`, 'info');
+            }
         }
 
         function filterByIndustry() {
             const industry = document.getElementById('industryFilter').value;
             showToast(industry ? `筛选行业：${industry}` : '显示全部行业', 'success');
-        }
-
-        function refreshData() {
-            showToast('数据已更新', 'success');
         }
 
         function exportChart() {
@@ -697,9 +933,26 @@
         }
 
         function exportStocks() {
+            if (!dataState.recommendations.length) {
+                showToast('暂无数据可导出', 'error');
+                return;
+            }
+            
             const headers = ['排名','代码','名称','价格','涨跌幅','评分','净流入','连续流入','行业','建议'];
-            const rows = [['1','300750.SZ','宁德时代','412.56','2.34%','92.5','8.50亿','5天','电池','STRONG BUY'],['2','688981.SH','中芯国际','52.38','4.56%','88.3','12.30亿','4天','半导体','STRONG BUY']];
-            const csv = '\ufeff' + [headers,...rows].map(r => r.join(',')).join('\n');
+            const rows = dataState.recommendations.map((stock, index) => [
+                index + 1,
+                stock.ts_code,
+                stock.name,
+                stock.price.toFixed(2),
+                (stock.change_pct >= 0 ? '+' : '') + stock.change_pct.toFixed(2) + '%',
+                stock.score.toFixed(1),
+                formatAmount(stock.net_amount),
+                stock.continuous_days + '天',
+                stock.industry,
+                stock.recommendation_type
+            ]);
+            
+            const csv = '\ufeff' + [headers, ...rows].map(r => r.join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -709,8 +962,9 @@
         }
 
         function showToast(message, type = 'success') {
-            const icons = { success: '✓', error: '✕', info: 'ℹ' };
-            document.getElementById('toastMessage').textContent = message;
+            const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
+            const icon = icons[type] || icons.success;
+            document.getElementById('toastMessage').textContent = `${icon} ${message}`;
             document.getElementById('toast').classList.add('show');
             setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);
         }

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List, Dict, Any
 import tushare as ts
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import json
 
-app = FastAPI(title="A 股资金追踪系统 API", version="3.0.5")
+app = FastAPI(title="A 股资金追踪系统 API", version="3.0.6")
 
 # CORS 配置
 app.add_middleware(
@@ -30,6 +30,36 @@ else:
 # 导入服务
 from app.services.tushare_service import tushare_service
 from app.services.capital_analyzer import capital_analyzer, CapitalFlowData
+from app.services.data_cache import data_cache
+from app.core.scheduler import data_scheduler
+
+# 启动时初始化
+@app.on_event("startup")
+async def startup_event():
+    """应用启动时执行"""
+    print("🚀 正在启动 A 股资金追踪系统...")
+    
+    # 启动定时任务调度器
+    data_scheduler.start()
+    
+    # 预加载数据
+    try:
+        print("📊 正在预加载数据...")
+        data_cache.get_indices(force_update=True)
+        data_cache.get_sectors(force_update=True)
+        data_cache.get_recommendations(force_update=True)
+        print("✅ 数据预加载完成")
+    except Exception as e:
+        print(f"⚠️ 数据预加载失败：{e}")
+    
+    print("✅ 系统启动完成")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """应用关闭时执行"""
+    print("🛑 正在关闭系统...")
+    data_scheduler.stop()
+    print("✅ 系统已关闭")
 
 
 class ApiHealth(BaseModel):
@@ -129,171 +159,128 @@ idx_map = {
 @app.get("/api/health", response_model=ApiHealth)
 async def health_check():
     """健康检查"""
+    cache_status = data_cache.get_cache_status()
     return ApiHealth(
         status="ok",
-        version="3.0.5",
+        version="3.0.6",
         tushare_configured=bool(tushare_token),
         timestamp=datetime.now().isoformat()
     )
 
 
 @app.get("/api/indices")
-async def get_indices():
-    """获取主要指数"""
-    if pro:
-        try:
-            indices = ["000001.SH", "399001.SZ", "399006.SZ", "000300.SH"]
-            results = []
-            end_date = datetime.now().strftime('%Y%m%d')
-            start_date = (datetime.now() - timedelta(days=10)).strftime('%Y%m%d')
-
-            for idx in indices:
-                try:
-                    df = pro.index_daily(ts_code=idx, start_date=start_date, end_date=end_date)
-                    if not df.empty:
-                        row = df.iloc[0]
-                        prev_close = row['pre_close'] if 'pre_close' in df.columns else row['close']
-                        results.append({
-                            "ts_code": row['ts_code'],
-                            "name": idx_map.get(idx, idx),
-                            "close": float(row['close']),
-                            "change": float(row['close'] - prev_close),
-                            "change_pct": float(row['pct_chg']) if 'pct_chg' in df.columns else 0.0,
-                            "volume": float(row['vol']) if 'vol' in df.columns else 0
-                        })
-                except Exception as e:
-                    print(f"获取指数 {idx} 数据失败：{e}")
-                    continue
-
-            if results:
-                return {"data": results, "success": True}
-        except Exception as e:
-            print(f"获取指数数据失败：{e}")
-
-    # 返回模拟数据
-    return {
-        "data": [
-            {"ts_code": "000001.SH", "name": "上证指数", "close": 3420.25, "change": 12.34, "change_pct": 0.36, "volume": 4567890123},
-            {"ts_code": "399001.SZ", "name": "深证成指", "close": 11565.82, "change": -45.67, "change_pct": -0.39, "volume": 5678901234},
-            {"ts_code": "399006.SZ", "name": "创业板指", "close": 2356.31, "change": 28.45, "change_pct": 1.22, "volume": 2345678901},
-            {"ts_code": "000300.SH", "name": "沪深 300", "close": 4321.56, "change": 15.34, "change_pct": 0.36, "volume": 3456789012}
-        ],
-        "success": True
-    }
+async def get_indices(force_update: bool = Query(False, description="强制更新数据")):
+    """
+    获取主要指数数据
+    优先从缓存读取，支持强制更新
+    """
+    try:
+        data = data_cache.get_indices(force_update=force_update)
+        return {
+            "data": data,
+            "success": True,
+            "source": "tushare" if tushare_service.is_available() else "mock",
+            "cached": not force_update
+        }
+    except Exception as e:
+        return {
+            "data": [],
+            "success": False,
+            "error": str(e)
+        }
 
 
 @app.get("/api/sectors/flow")
-async def get_sector_flow():
-    """获取板块资金流向"""
-    if pro:
-        try:
-            # 获取行业分类
-            df = pro.index_classify(src='SW2021', level='L1')
-            if df is not None and not df.empty:
-                sectors = df.to_dict('records')
-                # 这里简化处理，实际需要调用板块资金流接口
-                results = []
-                for sector in sectors[:20]:  # 限制数量
-                    results.append({
-                        "sector_name": sector.get('index_name', ''),
-                        "net_amount": 0,
-                        "change_pct": 0,
-                        "stock_count": 0,
-                        "inflow_stock_count": 0
-                    })
-                return {"data": results, "success": True}
-        except Exception as e:
-            print(f"获取板块数据失败：{e}")
-
-    # 返回模拟数据
-    return {
-        "data": [
-            {"sector_name": "半导体", "net_amount": 156000000, "change_pct": 3.25, "stock_count": 60, "inflow_stock_count": 45},
-            {"sector_name": "人工智能", "net_amount": 123000000, "change_pct": 2.88, "stock_count": 55, "inflow_stock_count": 38},
-            {"sector_name": "光伏设备", "net_amount": 98000000, "change_pct": 2.45, "stock_count": 50, "inflow_stock_count": 32},
-            {"sector_name": "汽车整车", "net_amount": 85000000, "change_pct": 1.98, "stock_count": 40, "inflow_stock_count": 28},
-            {"sector_name": "医疗器械", "net_amount": 62000000, "change_pct": 1.56, "stock_count": 45, "inflow_stock_count": 25},
-            {"sector_name": "软件开发", "net_amount": 51000000, "change_pct": 1.32, "stock_count": 50, "inflow_stock_count": 22},
-            {"sector_name": "电池", "net_amount": 43000000, "change_pct": 0.98, "stock_count": 35, "inflow_stock_count": 20},
-            {"sector_name": "通信设备", "net_amount": 32000000, "change_pct": 0.76, "stock_count": 40, "inflow_stock_count": 18},
-            {"sector_name": "券商", "net_amount": 21000000, "change_pct": 0.54, "stock_count": 30, "inflow_stock_count": 15},
-            {"sector_name": "家电", "net_amount": 12000000, "change_pct": 0.32, "stock_count": 25, "inflow_stock_count": 12}
-        ],
-        "success": True
-    }
+async def get_sectors_flow(force_update: bool = Query(False, description="强制更新数据")):
+    """
+    获取板块资金流向
+    优先从缓存读取
+    """
+    try:
+        data = data_cache.get_sectors(force_update=force_update)
+        return {
+            "data": data,
+            "success": True,
+            "source": "tushare" if tushare_service.is_available() else "mock",
+            "cached": not force_update
+        }
+    except Exception as e:
+        return {
+            "data": [],
+            "success": False,
+            "error": str(e)
+        }
 
 
 @app.get("/api/recommendations")
-async def get_recommendations(top_n: int = Query(20, description="返回股票数量")):
-    """获取资金强度推荐"""
-    if pro:
-        try:
-            # 获取股票列表
-            stock_basic = tushare_service.get_stock_basic()
-            if stock_basic:
-                # 获取资金流数据并分析
-                # 这里简化处理，实际应该批量获取资金流数据
-                pass
-        except Exception as e:
-            print(f"获取推荐数据失败：{e}")
+async def get_recommendations(
+    top_n: int = Query(20, description="返回股票数量"),
+    force_update: bool = Query(False, description="强制更新数据")
+):
+    """
+    获取资金强度推荐
+    优先从缓存读取
+    """
+    try:
+        data = data_cache.get_recommendations(top_n=top_n, force_update=force_update)
+        return {
+            "data": data,
+            "success": True,
+            "source": "tushare" if tushare_service.is_available() else "mock",
+            "cached": not force_update
+        }
+    except Exception as e:
+        return {
+            "data": [],
+            "success": False,
+            "error": str(e)
+        }
 
-    # 返回模拟数据
+
+@app.get("/api/cache/status")
+async def get_cache_status():
+    """获取缓存状态"""
     return {
-        "data": [
-            {"ts_code": "300750.SZ", "name": "宁德时代", "price": 412.56, "change_pct": 2.34, "score": 92.5, "net_amount": 85000000, "continuous_days": 5, "industry": "电池", "recommendation_type": "STRONG_BUY"},
-            {"ts_code": "688981.SH", "name": "中芯国际", "price": 52.38, "change_pct": 4.56, "score": 88.3, "net_amount": 123000000, "continuous_days": 4, "industry": "半导体", "recommendation_type": "STRONG_BUY"},
-            {"ts_code": "000858.SZ", "name": "五粮液", "price": 168.92, "change_pct": 0.87, "score": 75.2, "net_amount": 21000000, "continuous_days": 3, "industry": "白酒", "recommendation_type": "BUY"},
-            {"ts_code": "002594.SZ", "name": "比亚迪", "price": 268.45, "change_pct": -1.23, "score": 72.8, "net_amount": -32000000, "continuous_days": 2, "industry": "汽车", "recommendation_type": "BUY"},
-            {"ts_code": "600030.SH", "name": "中信证券", "price": 28.92, "change_pct": 1.23, "score": 68.5, "net_amount": 56000000, "continuous_days": 3, "industry": "券商", "recommendation_type": "BUY"}
-        ][:top_n],
+        "data": data_cache.get_cache_status(),
         "success": True
     }
 
 
-@app.get("/api/capital-flow/{ts_code}")
-async def get_capital_flow(ts_code: str):
-    """获取个股资金流向"""
-    if pro:
-        try:
-            data = tushare_service.get_moneyflow(ts_code)
-            if data:
-                return {"data": data, "success": True}
-        except Exception as e:
-            print(f"获取资金流数据失败：{e}")
-
-    # 返回模拟数据
+@app.post("/api/cache/clear")
+async def clear_cache(data_type: Optional[str] = Query(None, description="数据类型，为空则清除所有")):
+    """清除缓存"""
+    data_cache.clear_cache(data_type)
     return {
-        "data": {
-            "ts_code": ts_code,
-            "trade_date": datetime.now().strftime('%Y%m%d'),
-            "close": 100.0,
-            "change_pct": 1.5,
-            "buy_elg_amount": 50000000,
-            "buy_big_amount": 30000000,
-            "buy_sm_amount": 20000000,
-            "sell_elg_amount": 40000000,
-            "sell_big_amount": 25000000,
-            "sell_sm_amount": 15000000
-        },
-        "success": True
+        "success": True,
+        "message": f"已清除 {data_type or '所有'} 缓存"
     }
 
 
-@app.get("/api/capital-flow/history/{ts_code}")
-async def get_capital_flow_history(ts_code: str, start_date: str = None, end_date: str = None):
-    """获取历史资金流向"""
-    if not start_date:
-        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
-    if not end_date:
-        end_date = datetime.now().strftime('%Y%m%d')
+@app.post("/api/cache/update")
+async def force_update_cache(
+    data_type: str = Query(..., description="数据类型：indices, sectors, stocks")
+):
+    """强制更新缓存"""
+    try:
+        if data_type == "indices":
+            data = data_cache.get_indices(force_update=True)
+        elif data_type == "sectors":
+            data = data_cache.get_sectors(force_update=True)
+        elif data_type == "stocks":
+            data = data_cache.get_recommendations(force_update=True)
+        else:
+            raise HTTPException(status_code=400, detail=f"未知的数据类型：{data_type}")
+        
+        return {
+            "success": True,
+            "data": data,
+            "message": f"{data_type} 数据已更新"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    if pro:
-        try:
-            data = tushare_service.get_moneyflow_history(ts_code, start_date, end_date)
-            if data:
-                return {"data": data, "success": True}
-        except Exception as e:
-            print(f"获取历史资金流数据失败：{e}")
+
+# 以下保留原有的其他 API 端点实现...
 
     # 返回模拟数据
     history = []

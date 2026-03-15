@@ -2,7 +2,50 @@
 
 ---
 
-## [3.0.1] - 2026-03-14
+## [3.0.5] - 2026-03-15
+
+### ✨ 后端 API 增强
+
+#### 新增 API 接口
+- **资金流向 API** - 完整的个股资金流向查询
+  - `GET /api/capital-flow/{ts_code}` - 获取单只股票资金流向
+  - `GET /api/capital-flow/history/{ts_code}` - 获取历史资金流向
+  - `GET /api/capital-flow/analysis/{ts_code}` - 分析资金强度评分
+- **投资组合 API** - 持仓管理接口
+  - `GET /api/portfolio` - 获取投资组合
+  - `POST /api/portfolio/position` - 添加持仓
+  - `DELETE /api/portfolio/position/{ts_code}` - 删除持仓
+- **预警系统 API** - 预警管理接口
+  - `GET /api/alerts` - 获取预警列表
+  - `POST /api/alert` - 创建预警
+  - `DELETE /api/alert/{alert_id}` - 删除预警
+- **策略回测 API** - 回测引擎接口
+  - `POST /api/backtest` - 运行策略回测
+- **模拟交易 API** - 模拟盘接口
+  - `GET /api/simulate/account` - 获取模拟账户
+  - `POST /api/simulate/buy` - 模拟买入
+  - `POST /api/simulate/sell` - 模拟卖出
+
+#### TuShare 数据接入
+- **真实数据支持** - 配置 TuShare Token 后获取真实市场数据
+- **指数行情** - 支持上证/深证/创业板/沪深 300 实时数据
+- **个股资金流** - 支持单只股票主力资金流向查询
+- **历史数据** - 支持历史资金流向数据查询
+
+#### 服务层优化
+- **TuShareService** - 封装 TuShare API 调用
+- **CapitalAnalyzer** - 资金强度评分算法
+- **错误处理** - 完善的异常处理和降级方案
+
+### 🔧 技术改进
+- 升级版本号为 3.0.5
+- 添加服务层导入和依赖注入
+- 优化 API 响应结构
+- 改进数据模型定义
+
+---
+
+## [3.0.4] - 2026-03-14
 
 ### ✨ UI 专业优化
 

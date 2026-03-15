@@ -5,255 +5,237 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>模拟交易 | A 股资金追踪系统</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --sidebar-bg: #09090b; --sidebar-hover: #18181b; --sidebar-active: rgba(99, 102, 241, 0.15);
-            --sidebar-border: rgba(255, 255, 255, 0.06); --sidebar-text: #a1a1aa; --sidebar-text-active: #ffffff;
-            --main-bg: #0c0c0e; --card-bg: #131316; --card-border: rgba(255, 255, 255, 0.04);
-            --text-primary: #fafafa; --text-secondary: #a1a1aa; --text-muted: #71717a;
-            --accent-primary: #6366f1; --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            --bull: #f43f5e; --bear: #10b981;
+            --sidebar-bg: #0f172a; --sidebar-hover: #1e293b; --sidebar-active: rgba(59, 130, 246, 0.15);
+            --sidebar-border: rgba(148, 163, 184, 0.1); --sidebar-text: #94a3b8; --sidebar-text-active: #f1f5f9;
+            --main-bg: #020617; --card-bg: #1e293b; --card-border: rgba(148, 163, 184, 0.1);
+            --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+            --accent-primary: #3b82f6; --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --bull: #ef4444; --bear: #22c55e; --warning: #f59e0b;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--main-bg); color: var(--text-primary); min-height: 100vh; }
-        body::before { content: ''; position: fixed; top: -50%; right: -20%; width: 800px; height: 800px; background: radial-gradient(ellipse, rgba(99, 102, 241, 0.08) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--main-bg); color: var(--text-primary); min-height: 100vh; }
+        body::before { content: ''; position: fixed; top: -50%; right: -20%; width: 800px; height: 800px; background: radial-gradient(ellipse, rgba(59, 130, 246, 0.06) 0%, transparent 70%); pointer-events: none; z-index: 0; }
         .app-container { display: flex; min-height: 100vh; position: relative; z-index: 1; }
-        .sidebar { width: 260px; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border); padding: 24px 16px; display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; }
-        .sidebar-logo { display: flex; align-items: center; gap: 12px; padding: 0 12px 24px; border-bottom: 1px solid var(--sidebar-border); margin-bottom: 24px; cursor: pointer; }
-        .logo-icon { width: 40px; height: 40px; background: var(--accent-gradient); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .logo-text { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-        .logo-subtitle { font-size: 11px; color: var(--text-muted); }
-        .nav-section { margin-bottom: 28px; }
-        .nav-section-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; padding: 0 12px; margin-bottom: 10px; }
-        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--sidebar-text); cursor: pointer; transition: all 0.2s ease; margin-bottom: 4px; border: none; background: transparent; width: 100%; text-align: left; font-size: 14px; font-weight: 500; }
+        .sidebar { width: 240px; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border); padding: 20px 12px; display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; }
+        .sidebar-logo { display: flex; align-items: center; gap: 12px; padding: 0 12px 20px; border-bottom: 1px solid var(--sidebar-border); margin-bottom: 20px; cursor: pointer; }
+        .logo-icon { width: 36px; height: 36px; background: var(--accent-gradient); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .logo-icon svg { width: 22px; height: 22px; fill: white; }
+        .logo-text { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+        .logo-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; padding: 0 12px; margin-bottom: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; color: var(--sidebar-text); cursor: pointer; transition: all 0.2s ease; margin-bottom: 2px; border: none; background: transparent; width: 100%; text-align: left; font-size: 13px; font-weight: 500; }
         .nav-item:hover { background: var(--sidebar-hover); color: var(--text-primary); }
         .nav-item.active { background: var(--sidebar-active); color: var(--text-primary); }
-        .nav-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid var(--sidebar-border); }
-        .version-tag { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 10px; font-size: 12px; color: var(--accent-primary); }
-        .main-content { flex: 1; margin-left: 260px; padding: 32px 40px; min-height: 100vh; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--card-border); }
-        .page-header h1 { font-size: 28px; font-weight: 700; color: var(--text-primary); }
-        .page-header p { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
-        .top-actions { display: flex; align-items: center; gap: 12px; }
-        .btn-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease; font-size: 18px; }
+        .nav-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+        .nav-icon svg { width: 18px; height: 18px; fill: currentColor; }
+        .sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--sidebar-border); }
+        .version-tag { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 11px; color: var(--accent-primary); }
+        .main-content { flex: 1; margin-left: 240px; padding: 24px 32px; min-height: 100vh; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--card-border); }
+        .page-header h1 { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .page-header p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .top-actions { display: flex; align-items: center; gap: 10px; }
+        .btn-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease; }
         .btn-icon:hover { background: var(--card-hover); border-color: var(--accent-primary); color: var(--text-primary); }
-        .btn-primary { display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: var(--accent-gradient); border: none; border-radius: 10px; color: white; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4); }
-        .btn-secondary { display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; color: var(--text-primary); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease; }
+        .btn-icon svg { width: 18px; height: 18px; fill: currentColor; }
+        .btn-primary { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--accent-gradient); border: none; border-radius: 8px; color: white; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4); }
+        .btn-primary svg { width: 16px; height: 16px; fill: currentColor; }
+        .btn-secondary { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-primary); font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s ease; }
         .btn-secondary:hover { background: var(--card-hover); border-color: var(--accent-primary); }
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px; transition: all 0.3s ease; }
-        .card:hover { border-color: rgba(255, 255, 255, 0.08); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card-title { font-size: 16px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 10px; }
-        .btn-ghost { padding: 8px 14px; background: transparent; border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px; transition: all 0.2s ease; }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; transition: all 0.3s ease; }
+        .card:hover { border-color: rgba(148, 163, 184, 0.2); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-size: 14px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+        .card-title svg { width: 18px; height: 18px; fill: var(--accent-primary); }
+        .btn-ghost { padding: 6px 12px; background: transparent; border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px; transition: all 0.2s ease; }
         .btn-ghost:hover { background: var(--card-hover); border-color: var(--accent-primary); color: var(--text-primary); }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
-        .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px; }
-        .stat-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-        .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--text-primary); letter-spacing: -1px; }
-        .stat-change { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }
-        .stat-change.bull { color: var(--bull); }
-        .stat-change.bear { color: var(--bear); }
-        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
-        .table-container { overflow-x: auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
+        .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+        .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .stat-change { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 12px; }
+        .stat-change.bull { color: var(--bear); }
+        .stat-change.bear { color: var(--bull); }
+        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .chart-container { height: 350px; }
+        .table-container { overflow-x: auto; border-radius: 8px; }
         .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th { padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--card-border); }
-        .data-table td { padding: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-size: 14px; }
-        .data-table tbody tr { transition: all 0.2s ease; cursor: pointer; }
-        .data-table tbody tr:hover { background: var(--card-hover); }
-        .stock-name-cell { display: flex; flex-direction: column; gap: 4px; }
-        .stock-name-cn { font-weight: 600; color: var(--text-primary); }
-        .stock-code { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
-        .change-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
-        .change-badge.bull { background: rgba(244, 63, 94, 0.15); color: var(--bull); }
-        .change-badge.bear { background: rgba(16, 185, 129, 0.15); color: var(--bear); }
-        .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-        .tag-buy { background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); }
-        .tag-sell { background: rgba(244, 63, 94, 0.15); color: var(--bull); }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .data-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--card-border); }
+        .data-table td { padding: 14px 16px; border-bottom: 1px solid rgba(148, 163, 184, 0.05); font-size: 13px; }
+        .data-table tbody tr { cursor: pointer; transition: all 0.2s ease; }
+        .data-table tbody tr:hover { background: rgba(148, 163, 184, 0.05); }
+        .stock-name-cell { display: flex; flex-direction: column; gap: 3px; }
+        .stock-name-cn { font-weight: 600; color: var(--text-primary); font-size: 13px; }
+        .stock-code { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .change-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+        .change-badge.bull { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .change-badge.bear { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .tag-buy { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .tag-sell { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .trade-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 10px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-primary); font-size: 13px; }
+        .form-input:focus { outline: none; border-color: var(--accent-primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal { background: #18181b; border: 1px solid var(--card-border); border-radius: 20px; padding: 32px; max-width: 500px; width: 90%; transform: translateY(20px); transition: all 0.3s ease; }
+        .modal { background: #1e293b; border: 1px solid var(--card-border); border-radius: 12px; padding: 24px; max-width: 480px; width: 90%; transform: translateY(20px); transition: all 0.3s ease; }
         .modal-overlay.active .modal { transform: translateY(0); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .modal-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
-        .modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; cursor: pointer; color: var(--text-secondary); }
-        .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
-        .form-input, .form-select { width: 100%; padding: 12px 16px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; color: var(--text-primary); font-size: 14px; }
-        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .form-actions { display: flex; gap: 12px; margin-top: 28px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+        .modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; color: var(--text-secondary); }
+        .modal-close:hover { background: var(--card-hover); color: var(--text-primary); }
+        .modal-close svg { width: 18px; height: 18px; fill: currentColor; }
+        .form-actions { display: flex; gap: 10px; margin-top: 20px; }
         .form-actions .btn-primary, .form-actions .btn-secondary { flex: 1; }
-        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; background: #18181b; border: 1px solid var(--card-border); border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 1100; }
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 18px; background: #1e293b; border: 1px solid var(--card-border); border-radius: 8px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 1100; }
         .toast.show { transform: translateY(0); opacity: 1; }
-        .toast-icon { font-size: 18px; }
-        .toast-message { font-size: 14px; color: var(--text-primary); }
-        .chart-container { height: 300px; }
+        .toast-message { font-size: 13px; color: var(--text-primary); }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .empty-state-title { font-size: 16px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+        .empty-state-desc { font-size: 13px; margin-bottom: 20px; }
+        .api-status { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; font-size: 12px; color: var(--text-secondary); }
+        .api-status.active { color: var(--bear); }
+        .api-status.inactive { color: var(--bull); }
+        .api-status .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .api-status.active .dot { background: var(--bear); }
+        .api-status.inactive .dot { background: var(--bull); }
+        @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } .trade-form { grid-template-columns: 1fr; } }
+        @media (max-width: 1024px) { .sidebar { transform: translateX(-100%); z-index: 100; } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .mobile-menu-btn { display: flex; } }
+        .mobile-menu-btn { display: none; width: 36px; height: 36px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; color: var(--text-secondary); align-items: center; justify-content: center; margin-bottom: 12px; }
+        .mobile-menu-btn svg { width: 20px; height: 20px; fill: currentColor; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-logo" onclick="window.location.href='index.html'">
-                <div class="logo-icon">📊</div>
-                <div><div class="logo-text">资金追踪</div><div class="logo-subtitle">Capital Flow</div></div>
+                <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
+                <div><div class="logo-text">资金追踪系统</div><div class="logo-subtitle">Capital Flow Dashboard</div></div>
             </div>
             <nav class="nav-section">
                 <div class="nav-section-title">主菜单</div>
-                <button class="nav-item" onclick="window.location.href='index.html'"><span class="nav-icon">🏠</span><span>数据看板</span></button>
-                <button class="nav-item" onclick="window.location.href='portfolio.html'"><span class="nav-icon">💼</span><span>投资组合</span></button>
+                <button class="nav-item" onclick="window.location.href='index.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span>数据看板</span></button>
+                <button class="nav-item" onclick="window.location.href='portfolio.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4h2v4zm0-6h-2V7h2v4z"/></svg></span><span>投资组合</span></button>
             </nav>
             <nav class="nav-section">
                 <div class="nav-section-title">工具</div>
-                <button class="nav-item" onclick="window.location.href='backtest.html'"><span class="nav-icon">🧪</span><span>策略回测</span></button>
-                <button class="nav-item active"><span class="nav-icon">🎯</span><span>模拟交易</span></button>
+                <button class="nav-item" onclick="window.location.href='backtest.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-4v-4H6v-4h4V9h4v4h4v4z"/></svg></span><span>策略回测</span></button>
+                <button class="nav-item active"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span><span>模拟交易</span></button>
             </nav>
             <nav class="nav-section">
                 <div class="nav-section-title">系统</div>
-                <button class="nav-item" onclick="openSettings()"><span class="nav-icon">⚙️</span><span>设置</span></button>
+                <button class="nav-item" onclick="openSettings()"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.5.38-1.03.7-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg></span><span>设置</span></button>
             </nav>
-            <div class="sidebar-footer"><div class="version-tag"><span>🚀</span><span>v3.0.0</span></div></div>
+            <div class="sidebar-footer"><div class="version-tag"><span>v3.0.3</span></div></div>
         </aside>
 
         <main class="main-content">
             <div class="top-bar">
-                <div class="page-header">
-                    <h1>🎯 模拟交易</h1>
-                    <p>零风险验证策略，实时模拟盘运行</p>
+                <div>
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+                    <div class="page-header"><h1>模拟交易</h1><p>零风险验证策略，实时模拟盘运行</p></div>
                 </div>
                 <div class="top-actions">
-                    <button class="btn-secondary" onclick="resetSimulation()">🔄 重置</button>
-                    <button class="btn-primary" onclick="openTradeModal()">📝 下单</button>
+                    <div class="api-status" id="apiStatus"><span class="dot"></span><span id="apiStatusText">模拟数据</span></div>
+                    <button class="btn-secondary" onclick="resetSimulation()"><svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg><span>重置</span></button>
+                    <button class="btn-primary" onclick="openTradeModal()"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg><span>下单</span></button>
                 </div>
             </div>
 
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">可用资金</div>
-                    <div class="stat-value" id="availableCash">¥1,000,000</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">持仓市值</div>
-                    <div class="stat-value" id="positionValue">¥0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">总资产</div>
-                    <div class="stat-value" id="totalAssets">¥1,000,000</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">累计盈亏</div>
-                    <div class="stat-value" id="totalProfit">¥0</div>
-                    <div class="stat-change" id="profitChange">--</div>
-                </div>
+                <div class="stat-card"><div class="stat-label">可用资金</div><div class="stat-value" id="availableCash">¥1,000,000</div></div>
+                <div class="stat-card"><div class="stat-label">持仓市值</div><div class="stat-value" id="positionValue">¥0</div></div>
+                <div class="stat-card"><div class="stat-label">总资产</div><div class="stat-value" id="totalAssets">¥1,000,000</div></div>
+                <div class="stat-card"><div class="stat-label">累计盈亏</div><div class="stat-value" id="totalProfit">¥0</div><div class="stat-change" id="profitChange">--</div></div>
             </div>
 
             <div class="content-grid">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><span>📋</span>当前持仓</div>
-                        <button class="btn-ghost" onclick="refreshPrices()">🔄 刷新</button>
+                        <div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4H8v-2h2V7h2v4h2v2h-2v4z"/></svg>当前持仓</div>
+                        <button class="btn-ghost" onclick="refreshPrices()">刷新价格</button>
                     </div>
                     <div class="table-container">
                         <table class="data-table">
-                            <thead>
-                                <tr><th>股票</th><th>持仓数量</th><th>成本价</th><th>当前价</th><th>市值</th><th>盈亏</th><th>收益率</th><th>操作</th></tr>
-                            </thead>
-                            <tbody id="positionTable">
-                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">暂无持仓，点击"下单"开始交易</td></tr>
-                            </tbody>
+                            <thead><tr><th>股票</th><th>持仓数量</th><th>成本价</th><th>当前价</th><th>市值</th><th>盈亏</th><th>收益率</th><th>操作</th></tr></thead>
+                            <tbody id="positionTable"><tr><td colspan="8" class="empty-state"><div class="empty-state-icon">💼</div><div class="empty-state-title">暂无持仓</div><div class="empty-state-desc">点击右上角"下单"开始交易</div><button class="btn-primary" onclick="openTradeModal()"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>下单</button></td></tr></tbody>
                         </table>
                     </div>
                 </div>
-
-                <div style="display:flex;flex-direction:column;gap:24px;">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title"><span>📈</span>资产走势</div>
+                <div>
+                    <div class="card" style="margin-bottom: 16px;">
+                        <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>下单面板</div></div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">交易类型</label><select class="form-input" id="tradeType"><option value="buy">买入</option><option value="sell">卖出</option></select></div>
+                            <div class="form-group"><label class="form-label">股票代码</label><select class="form-input" id="stockSelect"></select></div>
                         </div>
-                        <div id="assetChart" class="chart-container"></div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">数量 (股)</label><input type="number" class="form-input" id="shares" placeholder="100 的整数倍"></div>
+                            <div class="form-group"><label class="form-label">参考价格</label><input type="text" class="form-input" id="refPrice" readonly></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">预计金额</label><input type="text" class="form-input" id="estimatedAmount" readonly></div>
+                        <button class="btn-primary" onclick="executeTrade()" style="width: 100%; margin-top: 12px;">确认下单</button>
                     </div>
                     <div class="card">
-                        <div class="card-header">
-                            <div class="card-title"><span>📊</span>行业分布</div>
-                        </div>
-                        <div id="industryChart" class="chart-container" style="height:200px;"></div>
+                        <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4H8v-2h2V7h2v4h2v2h-2v4z"/></svg>资产走势</div></div>
+                        <div id="assetChart" class="chart-container"></div>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title"><span>📝</span>交易记录</div>
-                </div>
+                <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4H8v-2h2V7h2v4h2v2h-2v4z"/></svg>交易记录</div></div>
                 <div class="table-container">
                     <table class="data-table">
-                        <thead>
-                            <tr><th>日期</th><th>股票</th><th>操作</th><th>数量</th><th>价格</th><th>金额</th></tr>
-                        </thead>
-                        <tbody id="tradeHistory">
-                            <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">暂无交易记录</td></tr>
-                        </tbody>
+                        <thead><tr><th>日期</th><th>股票</th><th>操作</th><th>数量</th><th>价格</th><th>金额</th><th>盈亏</th></tr></thead>
+                        <tbody id="tradeHistory"><tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-title">暂无交易记录</div><div class="empty-state-desc">开始交易后将显示交易历史</div></td></tr></tbody>
                     </table>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- 交易弹窗 -->
     <div class="modal-overlay" id="tradeModal" onclick="closeTradeModal(event)">
         <div class="modal">
-            <div class="modal-header">
-                <h2 class="modal-title">📝 下单交易</h2>
-                <button class="modal-close" onclick="closeTradeModal()">✕</button>
+            <div class="modal-header"><h2 class="modal-title">下单交易</h2><button class="modal-close" onclick="closeTradeModal()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">交易类型</label><select class="form-input" id="modalTradeType"><option value="buy">买入</option><option value="sell">卖出</option></select></div>
+                <div class="form-group"><label class="form-label">股票代码</label><select class="form-input" id="modalStockSelect"></select></div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">交易类型</label>
-                    <select class="form-select" id="tradeType" onchange="updateStockList()">
-                        <option value="buy">买入</option>
-                        <option value="sell">卖出</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">股票代码</label>
-                    <select class="form-select" id="stockSelect"></select>
-                </div>
+                <div class="form-group"><label class="form-label">数量 (股)</label><input type="number" class="form-input" id="modalShares" placeholder="100 的整数倍"></div>
+                <div class="form-group"><label class="form-label">参考价格</label><input type="text" class="form-input" id="modalRefPrice" readonly></div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">数量 (股)</label>
-                    <input type="number" class="form-input" id="shares" placeholder="100 的整数倍">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">参考价格</label>
-                    <input type="text" class="form-input" id="refPrice" readonly>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">预计金额</label>
-                <input type="text" class="form-input" id="estimatedAmount" readonly>
-            </div>
-            <div class="form-actions">
-                <button class="btn-secondary" onclick="closeTradeModal()">取消</button>
-                <button class="btn-primary" onclick="executeTrade()" style="flex:1;">确认下单</button>
-            </div>
+            <div class="form-group"><label class="form-label">预计金额</label><input type="text" class="form-input" id="modalEstimatedAmount" readonly></div>
+            <div class="form-actions"><button class="btn-secondary" onclick="closeTradeModal()">取消</button><button class="btn-primary" onclick="executeModalTrade()">确认下单</button></div>
         </div>
     </div>
 
-    <!-- 设置弹窗 -->
     <div class="modal-overlay" id="settingsModal" onclick="closeSettings(event)">
         <div class="modal">
-            <div class="modal-header"><h2 class="modal-title">⚙️ 系统设置</h2><button class="modal-close" onclick="closeSettings()">✕</button></div>
-            <div class="form-group"><label class="form-label">TuShare API Token</label><input type="text" class="form-input" id="tushareToken"></div>
-            <div class="form-actions"><button class="btn-secondary" onclick="closeSettings()">取消</button><button class="btn-primary" onclick="saveSettings()" style="flex:1;">💾 保存</button></div>
+            <div class="modal-header"><h2 class="modal-title">系统设置</h2><button class="modal-close" onclick="closeSettings()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <div class="form-group"><label class="form-label">TuShare API Token</label><input type="text" class="form-input" id="tushareToken" placeholder="请输入你的 TuShare Token"></div>
+            <div class="form-group"><label class="form-label">数据源</label><select class="form-input" id="dataSource"><option value="mock">模拟数据（演示模式）</option><option value="tushare">TuShare API（需配置 Token）</option></select></div>
+            <div class="form-actions"><button class="btn-secondary" onclick="closeSettings()">取消</button><button class="btn-primary" onclick="saveSettings()" style="flex:1;">保存</button></div>
         </div>
     </div>
 
-    <div class="toast" id="toast"><span class="toast-icon" id="toastIcon">✅</span><span class="toast-message" id="toastMessage">操作成功</span></div>
+    <div class="toast" id="toast"><span class="toast-message" id="toastMessage">操作成功</span></div>
 
     <script>
+        let positions = JSON.parse(localStorage.getItem('simulate_positions') || '[]');
+        let trades = JSON.parse(localStorage.getItem('simulate_trades') || '[]');
+        let cash = parseFloat(localStorage.getItem('simulate_cash') || '1000000');
+        let config = { tushareToken: localStorage.getItem('tushareToken') || '', dataSource: localStorage.getItem('dataSource') || 'mock' };
         const stockList = [
             { code: '300750.SZ', name: '宁德时代', price: 412.56, industry: '电池' },
             { code: '688981.SH', name: '中芯国际', price: 52.38, industry: '半导体' },
@@ -265,24 +247,26 @@
             { code: '600036.SH', name: '招商银行', price: 38.45, industry: '银行' }
         ];
 
-        let positions = JSON.parse(localStorage.getItem('simulate_positions') || '[]');
-        let trades = JSON.parse(localStorage.getItem('simulate_trades') || '[]');
-        let cash = parseFloat(localStorage.getItem('simulate_cash') || '1000000');
-        let assetHistory = JSON.parse(localStorage.getItem('simulate_asset_history') || '[]');
-        let config = { tushareToken: localStorage.getItem('tushareToken') || '' };
+        document.addEventListener('DOMContentLoaded', () => { loadConfig(); updateStats(); renderPositions(); renderTrades(); renderAssetChart(); updateApiStatus(); updateStockLists(); });
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadConfig();
-            updateStats();
-            renderPositions();
-            renderTrades();
-            renderCharts();
-        });
-
-        function loadConfig() { document.getElementById('tushareToken').value = config.tushareToken; }
+        function loadConfig() { document.getElementById('tushareToken').value = config.tushareToken; document.getElementById('dataSource').value = config.dataSource; }
         function openSettings() { document.getElementById('settingsModal').classList.add('active'); }
         function closeSettings(event) { if (!event || event.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.remove('active'); }
-        function saveSettings() { config.tushareToken = document.getElementById('tushareToken').value.trim(); localStorage.setItem('tushareToken', config.tushareToken); closeSettings(); showToast('✅ 设置已保存'); }
+        function saveSettings() { config.tushareToken = document.getElementById('tushareToken').value.trim(); config.dataSource = document.getElementById('dataSource').value; localStorage.setItem('tushareToken', config.tushareToken); localStorage.setItem('dataSource', config.dataSource); closeSettings(); updateApiStatus(); showToast('设置已保存'); }
+
+        function updateApiStatus() {
+            const dot = document.getElementById('apiStatus').querySelector('.dot');
+            const text = document.getElementById('apiStatusText');
+            if (config.dataSource === 'tushare' && config.tushareToken) {
+                dot.className = 'dot'; dot.style.backgroundColor = 'var(--bear)';
+                text.textContent = 'TuShare API';
+                document.getElementById('apiStatus').className = 'api-status active';
+            } else {
+                dot.className = 'dot'; dot.style.backgroundColor = 'var(--bull)';
+                text.textContent = '模拟数据';
+                document.getElementById('apiStatus').className = 'api-status inactive';
+            }
+        }
 
         function updateStats() {
             let positionValue = 0;
@@ -292,7 +276,6 @@
             });
             const total = cash + positionValue;
             const profit = total - 1000000;
-            
             document.getElementById('availableCash').textContent = '¥' + cash.toLocaleString();
             document.getElementById('positionValue').textContent = '¥' + positionValue.toLocaleString();
             document.getElementById('totalAssets').textContent = '¥' + total.toLocaleString();
@@ -306,7 +289,7 @@
         function renderPositions() {
             const tbody = document.getElementById('positionTable');
             if (positions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">暂无持仓，点击"下单"开始交易</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">💼</div><div class="empty-state-title">暂无持仓</div><div class="empty-state-desc">点击右上角"下单"开始交易</div><button class="btn-primary" onclick="openTradeModal()"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>下单</button></td></tr>';
                 return;
             }
             tbody.innerHTML = positions.map(p => {
@@ -315,70 +298,95 @@
                 const marketValue = currentPrice * p.shares;
                 const profit = marketValue - (p.costPrice * p.shares);
                 const returnRate = ((currentPrice - p.costPrice) / p.costPrice) * 100;
-                return `
-                    <tr>
-                        <td><div class="stock-name-cell"><span class="stock-name-cn">${p.name}</span><span class="stock-code">${p.code}</span></div></td>
-                        <td>${p.shares.toLocaleString()}</td>
-                        <td style="font-family:'JetBrains Mono';">¥${p.costPrice.toFixed(2)}</td>
-                        <td style="font-family:'JetBrains Mono';">¥${currentPrice.toFixed(2)}</td>
-                        <td style="font-family:'JetBrains Mono';">¥${marketValue.toLocaleString()}</td>
-                        <td style="font-family:'JetBrains Mono';color:${profit >= 0 ? 'var(--bear)' : 'var(--bull)'}">${profit >= 0 ? '+' : ''}¥${profit.toLocaleString()}</td>
-                        <td><span class="change-badge ${returnRate >= 0 ? 'bull' : 'bear'}">${returnRate >= 0 ? '↑' : '↓'} ${Math.abs(returnRate).toFixed(2)}%</span></td>
-                        <td><button class="btn-ghost" onclick="sellStock('${p.code}')" style="padding:6px 10px;font-size:12px;">🗑️ 卖出</button></td>
-                    </tr>
-                `;
+                return `<tr><td><div class="stock-name-cell"><span class="stock-name-cn">${p.name}</span><span class="stock-code">${p.code}</span></div></td><td>${p.shares.toLocaleString()}</td><td style="font-family:'JetBrains Mono';">¥${p.costPrice.toFixed(2)}</td><td style="font-family:'JetBrains Mono';">¥${currentPrice.toFixed(2)}</td><td style="font-family:'JetBrains Mono';">¥${marketValue.toLocaleString()}</td><td style="font-family:'JetBrains Mono';color:${profit >= 0 ? 'var(--bear)' : 'var(--bull)'}">${profit >= 0 ? '+' : ''}¥${profit.toLocaleString()}</td><td><span class="change-badge ${returnRate >= 0 ? 'bull' : 'bear'}">${returnRate >= 0 ? '↑' : '↓'} ${Math.abs(returnRate).toFixed(2)}%</span></td><td><button class="btn-ghost" onclick="sellStock('${p.code}')" style="padding:6px 10px;font-size:12px;">🗑️ 卖出</button></td></tr>`;
             }).join('');
         }
 
         function renderTrades() {
             const tbody = document.getElementById('tradeHistory');
             if (trades.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">暂无交易记录</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-title">暂无交易记录</div><div class="empty-state-desc">开始交易后将显示交易历史</div></td></tr>';
                 return;
             }
-            tbody.innerHTML = trades.slice(0, 50).map(t => `
-                <tr>
-                    <td>${t.date}</td>
-                    <td>${t.name}</td>
-                    <td style="color: ${t.type === '买入' ? 'var(--bear)' : 'var(--bull)'}">${t.type}</td>
-                    <td>${t.shares.toLocaleString()}</td>
-                    <td style="font-family:'JetBrains Mono';">¥${t.price.toFixed(2)}</td>
-                    <td style="font-family:'JetBrains Mono';">¥${t.amount.toLocaleString()}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = trades.slice(0, 50).map(t => `<tr><td>${t.date}</td><td>${t.name}</td><td style="color: ${t.type === '买入' ? 'var(--bear)' : 'var(--bull)'}">${t.type}</td><td>${t.shares.toLocaleString()}</td><td style="font-family:'JetBrains Mono';">¥${t.price.toFixed(2)}</td><td style="font-family:'JetBrains Mono';">¥${t.amount.toLocaleString()}</td><td style="font-family:'JetBrains Mono';color: ${t.profit >= 0 ? 'var(--bear)' : 'var(--bull)'}">${t.profit >= 0 ? '+' : ''}¥${t.profit.toLocaleString()}</td></tr>`).join('');
         }
+
+        function renderAssetChart() {
+            const chart = echarts.init(document.getElementById('assetChart'), 'dark', { backgroundColor: 'transparent' });
+            const data = [];
+            let currentValue = 1000000;
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(); date.setDate(date.getDate() - (29 - i));
+                currentValue *= (1 + (Math.random() - 0.45) * 0.02);
+                data.push({ date: date.toLocaleDateString('zh-CN'), value: currentValue });
+            }
+            chart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
+                xAxis: { type: 'category', data: data.map(d => d.date), axisLabel: { color: '#64748b' } },
+                yAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: '#1e293b' } } },
+                series: [{
+                    type: 'line', smooth: true, data: data.map(d => d.value),
+                    itemStyle: { color: '#3b82f6' },
+                    areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                        { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+                    ]) }
+                }]
+            });
+            window.addEventListener('resize', () => chart.resize());
+        }
+
+        function updateStockLists() {
+            const buySelect = document.getElementById('stockSelect');
+            const modalSelect = document.getElementById('modalStockSelect');
+            buySelect.innerHTML = stockList.map(s => `<option value="${s.code}">${s.name} (${s.code})</option>`).join('');
+            modalSelect.innerHTML = stockList.map(s => `<option value="${s.code}">${s.name} (${s.code})</option>`).join('');
+            
+            buySelect.onchange = () => {
+                const code = buySelect.value;
+                const stock = stockList.find(s => s.code === code);
+                if (stock) {
+                    document.getElementById('refPrice').value = '¥' + stock.price.toFixed(2);
+                    updateEstimatedAmount('shares', 'refPrice', 'estimatedAmount');
+                }
+            };
+            
+            modalSelect.onchange = () => {
+                const code = modalSelect.value;
+                const stock = stockList.find(s => s.code === code);
+                if (stock) {
+                    document.getElementById('modalRefPrice').value = '¥' + stock.price.toFixed(2);
+                    updateEstimatedAmount('modalShares', 'modalRefPrice', 'modalEstimatedAmount');
+                }
+            };
+        }
+
+        function updateEstimatedAmount(sharesId, priceId, amountId) {
+            const shares = parseInt(document.getElementById(sharesId).value) || 0;
+            const price = parseFloat(document.getElementById(priceId).value.replace('¥', '')) || 0;
+            document.getElementById(amountId).value = '¥' + (shares * price).toLocaleString();
+        }
+
+        document.getElementById('shares')?.addEventListener('input', () => updateEstimatedAmount('shares', 'refPrice', 'estimatedAmount'));
+        document.getElementById('modalShares')?.addEventListener('input', () => updateEstimatedAmount('modalShares', 'modalRefPrice', 'modalEstimatedAmount'));
 
         function openTradeModal() {
             document.getElementById('tradeModal').classList.add('active');
-            updateStockList();
-        }
-
-        function closeTradeModal(event) { if (!event || event.target === document.getElementById('tradeModal')) document.getElementById('tradeModal').classList.remove('active'); }
-
-        function updateStockList() {
-            const type = document.getElementById('tradeType').value;
-            const select = document.getElementById('stockSelect');
-            
-            if (type === 'buy') {
-                select.innerHTML = stockList.map(s => `<option value="${s.code}" data-price="${s.price}">${s.name} (${s.code})</option>`).join('');
-            } else {
-                select.innerHTML = positions.map(p => `<option value="${p.code}" data-price="${stockList.find(s => s.code === p.code)?.price || 0}">${p.name} (${p.code})</option>`).join('');
+            const select = document.getElementById('modalStockSelect');
+            const stock = stockList.find(s => s.code === select.value);
+            if (stock) {
+                document.getElementById('modalRefPrice').value = '¥' + stock.price.toFixed(2);
+                updateEstimatedAmount('modalShares', 'modalRefPrice', 'modalEstimatedAmount');
             }
-            
-            select.onchange = () => {
-                const option = select.options[select.selectedIndex];
-                const price = parseFloat(option.dataset.price);
-                document.getElementById('refPrice').value = '¥' + price.toFixed(2);
-                updateEstimatedAmount();
-            };
-            select.onchange();
         }
 
-        document.getElementById('shares')?.addEventListener('input', updateEstimatedAmount);
-        function updateEstimatedAmount() {
-            const shares = parseInt(document.getElementById('shares').value) || 0;
-            const price = parseFloat(document.getElementById('refPrice').value.replace('¥', '')) || 0;
-            document.getElementById('estimatedAmount').value = '¥' + (shares * price).toLocaleString();
+        function closeTradeModal(event) {
+            if (!event || event.target === document.getElementById('tradeModal')) {
+                document.getElementById('tradeModal').classList.remove('active');
+                document.getElementById('modalShares').value = '';
+                document.getElementById('modalEstimatedAmount').value = '';
+            }
         }
 
         function executeTrade() {
@@ -386,9 +394,9 @@
             const code = document.getElementById('stockSelect').value;
             const shares = parseInt(document.getElementById('shares').value);
             const stock = stockList.find(s => s.code === code);
-            
+
             if (!stock || shares < 100 || shares % 100 !== 0) {
-                showToast('❌ 数量必须是 100 的整数倍', 'error');
+                showToast('数量必须是 100 的整数倍', 'error');
                 return;
             }
 
@@ -396,7 +404,7 @@
 
             if (type === 'buy') {
                 if (amount > cash) {
-                    showToast('❌ 可用资金不足', 'error');
+                    showToast('可用资金不足', 'error');
                     return;
                 }
                 const existing = positions.find(p => p.code === code);
@@ -410,7 +418,7 @@
             } else {
                 const pos = positions.find(p => p.code === code);
                 if (!pos || pos.shares < shares) {
-                    showToast('❌ 持仓数量不足', 'error');
+                    showToast('持仓数量不足', 'error');
                     return;
                 }
                 pos.shares -= shares;
@@ -421,7 +429,7 @@
             trades.unshift({
                 date: new Date().toLocaleDateString('zh-CN'),
                 type: type === 'buy' ? '买入' : '卖出',
-                code, name: stock.name, shares, price: stock.price, amount
+                code, name: stock.name, shares, price: stock.price, amount, profit: type === 'buy' ? 0 : (stock.price - (pos?.costPrice || stock.price)) * shares
             });
 
             saveData();
@@ -429,13 +437,25 @@
             updateStats();
             renderPositions();
             renderTrades();
-            renderCharts();
-            showToast(type === 'buy' ? '✅ 买入成功' : '✅ 卖出成功');
+            renderAssetChart();
+            showToast(type === 'buy' ? '买入成功' : '卖出成功');
+        }
+
+        function executeModalTrade() {
+            document.getElementById('tradeType').value = document.getElementById('modalTradeType').value;
+            document.getElementById('stockSelect').value = document.getElementById('modalStockSelect').value;
+            document.getElementById('shares').value = document.getElementById('modalShares').value;
+            executeTrade();
         }
 
         function sellStock(code) {
             document.getElementById('tradeType').value = 'sell';
-            openTradeModal();
+            document.getElementById('stockSelect').value = code;
+            const stock = stockList.find(s => s.code === code);
+            if (stock) {
+                document.getElementById('refPrice').value = '¥' + stock.price.toFixed(2);
+            }
+            showToast('已选择卖出', 'info');
         }
 
         function saveData() {
@@ -449,61 +469,30 @@
                 positions = [];
                 trades = [];
                 cash = 1000000;
-                assetHistory = [];
                 saveData();
                 updateStats();
                 renderPositions();
                 renderTrades();
-                renderCharts();
-                showToast('✅ 已重置');
+                renderAssetChart();
+                showToast('已重置');
             }
         }
 
         function refreshPrices() {
             renderPositions();
             updateStats();
-            renderCharts();
-            showToast('✅ 价格已更新');
-        }
-
-        function renderCharts() {
-            // 资产走势
-            const assetChart = echarts.init(document.getElementById('assetChart'), 'dark', { backgroundColor: 'transparent' });
-            const data = assetHistory.length > 0 ? assetHistory : [{ date: new Date().toLocaleDateString('zh-CN'), value: 1000000 }];
-            assetChart.setOption({
-                tooltip: { trigger: 'axis' },
-                xAxis: { type: 'category', data: data.map(d => d.date), axisLabel: { color: '#71717a' } },
-                yAxis: { type: 'value', axisLabel: { color: '#71717a' }, splitLine: { lineStyle: { color: '#27272a' } } },
-                series: [{ type: 'line', smooth: true, data: data.map(d => d.value), itemStyle: { color: '#6366f1' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(99, 102, 241, 0.3)' }, { offset: 1, color: 'rgba(99, 102, 241, 0.05)' }]) } }]
-            });
-
-            // 行业分布
-            const industryChart = echarts.init(document.getElementById('industryChart'), 'dark', { backgroundColor: 'transparent' });
-            const industryData = {};
-            positions.forEach(p => {
-                const stock = stockList.find(s => s.code === p.code);
-                if (stock) {
-                    const value = stock.price * p.shares;
-                    industryData[p.industry] = (industryData[p.industry] || 0) + value;
-                }
-            });
-            industryChart.setOption({
-                tooltip: { trigger: 'item' },
-                series: [{
-                    type: 'pie', radius: ['40%', '70%'],
-                    data: Object.entries(industryData).map(([name, value]) => ({ name, value })),
-                    label: { color: '#a1a1aa' },
-                    itemStyle: { color: (params) => { const colors = ['#6366f1', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#06b6d4']; return colors[params.dataIndex % colors.length]; } }
-                }]
-            });
+            renderAssetChart();
+            showToast('价格已更新');
         }
 
         function showToast(message, type = 'success') {
-            const icons = { success: '✅', error: '❌', info: 'ℹ️' };
-            document.getElementById('toastIcon').textContent = icons[type];
             document.getElementById('toastMessage').textContent = message;
             document.getElementById('toast').classList.add('show');
             setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
         }
     </script>
 </body>

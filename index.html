@@ -913,56 +913,207 @@
                 case 'health':
                     resultEl.textContent = JSON.stringify({
                         status: 'ok',
-                        version: '3.0.1',
+                        version: '3.0.3',
                         timestamp: new Date().toISOString(),
-                        dataSource: config.dataSource
+                        dataSource: config.dataSource,
+                        tushareTokenConfigured: !!config.tushareToken
                     }, null, 2);
                     resultEl.className = 'api-result success';
                     showToast('健康检查通过');
                     break;
                     
                 case 'connectivity':
-                    const startTime = Date.now();
-                    fetch('/api/health')
-                        .then(r => {
-                            const latency = Date.now() - startTime;
-                            resultEl.textContent = JSON.stringify({
-                                status: r.ok ? 'connected' : 'error',
-                                latency: latency + 'ms',
-                                httpStatus: r.status
-                            }, null, 2);
-                            resultEl.className = r.ok ? 'api-result success' : 'api-result error';
+                    if (config.dataSource === 'tushare' && config.tushareToken) {
+                        // 测试 TuShare API 连通性
+                        const startTime = Date.now();
+                        fetch('https://api.tushare.pro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                api_name: 'daily',
+                                token: config.tushareToken,
+                                params: { ts_code: '000001.SZ', trade_date: formatDate(new Date()) },
+                                fields: 'ts_code,trade_date,open,high,low,close'
+                            })
                         })
-                        .catch(e => {
-                            resultEl.textContent = `连接失败：${e.message}\n\n当前为静态页面模式`;
+                        .then(response => response.json())
+                        .then(data => {
+                            const latency = Date.now() - startTime;
+                            if (data.code === 0) {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'connected',
+                                    latency: latency + 'ms',
+                                    httpStatus: 200,
+                                    message: 'TuShare API 连通性正常',
+                                    dataReceived: data.data?.items?.length > 0
+                                }, null, 2);
+                                resultEl.className = 'api-result success';
+                                showToast('API 连通性测试成功');
+                            } else {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'error',
+                                    latency: latency + 'ms',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || '未知错误',
+                                    message: 'TuShare API 调用失败'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('API 调用失败', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                message: '网络连接失败或 API 不可用'
+                            }, null, 2);
                             resultEl.className = 'api-result error';
+                            showToast('网络连接失败', 'error');
                         });
+                    } else {
+                        resultEl.textContent = JSON.stringify({
+                            status: 'warning',
+                            message: '未配置 TuShare Token，无法测试 API 连通性',
+                            dataSource: config.dataSource,
+                            tokenConfigured: !!config.tushareToken
+                        }, null, 2);
+                        resultEl.className = 'api-result error';
+                        showToast('请先配置 TuShare Token', 'warning');
+                    }
                     break;
                     
                 case 'data':
-                    resultEl.textContent = JSON.stringify({
-                        message: '数据获取测试',
-                        availableEndpoints: [
-                            '/api/health',
-                            '/api/indices',
-                            '/api/sectors/flow',
-                            '/api/recommendations'
-                        ],
-                        note: '需要后端服务支持'
-                    }, null, 2);
-                    resultEl.className = 'api-result success';
+                    if (config.dataSource === 'tushare' && config.tushareToken) {
+                        // 测试数据获取
+                        fetch('https://api.tushare.pro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                api_name: 'daily',
+                                token: config.tushareToken,
+                                params: { ts_code: '000001.SZ', start_date: formatDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)), end_date: formatDate(new Date()) },
+                                fields: 'ts_code,trade_date,close,change,vol'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.code === 0 && data.data?.items?.length > 0) {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'success',
+                                    message: '数据获取成功',
+                                    records: data.data.items.length,
+                                    sample: data.data.items[0],
+                                    lastUpdate: new Date().toISOString()
+                                }, null, 2);
+                                resultEl.className = 'api-result success';
+                                showToast('数据获取测试成功');
+                            } else {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'error',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || '数据获取失败',
+                                    message: '无法获取有效数据'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('数据获取失败', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                message: '数据获取请求失败'
+                            }, null, 2);
+                            resultEl.className = 'api-result error';
+                            showToast('数据请求失败', 'error');
+                        });
+                    } else {
+                        resultEl.textContent = JSON.stringify({
+                            status: 'warning',
+                            message: '未配置 TuShare Token，无法测试数据获取',
+                            dataSource: config.dataSource,
+                            tokenConfigured: !!config.tushareToken
+                        }, null, 2);
+                        resultEl.className = 'api-result error';
+                        showToast('请先配置 TuShare Token', 'warning');
+                    }
                     break;
                     
                 case 'auth':
-                    resultEl.textContent = JSON.stringify({
-                        authenticated: config.tushareToken ? true : false,
-                        dataSource: config.dataSource,
-                        tokenConfigured: !!config.tushareToken,
-                        message: config.tushareToken ? 'TuShare Token 已配置' : '未配置 Token，使用模拟数据'
-                    }, null, 2);
-                    resultEl.className = 'api-result success';
+                    if (config.dataSource === 'tushare' && config.tushareToken) {
+                        // 测试权限
+                        fetch('https://api.tushare.pro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                api_name: 'trade_cal',
+                                token: config.tushareToken,
+                                params: { exchange: 'SSE', start_date: formatDate(new Date()) },
+                                fields: 'exchange,cal_date,is_open'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.code === 0) {
+                                const hasAccess = data.data?.items?.length > 0;
+                                resultEl.textContent = JSON.stringify({
+                                    status: hasAccess ? 'authorized' : 'limited_access',
+                                    message: hasAccess ? 'Token 权限验证通过' : 'Token 已配置但权限有限',
+                                    errorCode: data.code,
+                                    accessLevel: hasAccess ? 'full' : 'restricted',
+                                    tokenValid: true
+                                }, null, 2);
+                                resultEl.className = 'api-result success';
+                                showToast('权限验证通过');
+                            } else if (data.code === 100) {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'invalid_token',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || 'Token 无效',
+                                    message: 'TuShare Token 无效或已过期'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('Token 无效', 'error');
+                            } else {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'permission_denied',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || '权限不足',
+                                    message: 'Token 权限不足，可能需要更高积分'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('权限不足', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                message: '权限验证请求失败'
+                            }, null, 2);
+                            resultEl.className = 'api-result error';
+                            showToast('权限验证失败', 'error');
+                        });
+                    } else {
+                        resultEl.textContent = JSON.stringify({
+                            status: 'not_configured',
+                            message: '未配置 TuShare Token',
+                            dataSource: config.dataSource,
+                            tokenConfigured: !!config.tushareToken,
+                            suggestion: '请在设置中配置有效的 TuShare Token'
+                        }, null, 2);
+                        resultEl.className = 'api-result error';
+                        showToast('请先配置 Token', 'warning');
+                    }
                     break;
             }
+        }
+        
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
         }
 
         // ============== 数据获取 ==============

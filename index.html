@@ -355,13 +355,70 @@
     <div class="toast" id="toast"><span class="toast-message" id="toastMessage">操作成功</span></div>
 
     <script>
+        // API 配置
+        const API_CONFIG = {
+            // 本地开发环境
+            local: 'http://localhost:8000',
+            // 生产环境（如果有部署后端）
+            production: '',
+            // 当前使用的 API 基础 URL
+            get baseUrl() {
+                // 检查是否在本地开发环境
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return this.local;
+                }
+                // GitHub Pages 或其他静态托管，使用相对路径（需要代理或同域部署）
+                return '';
+            }
+        };
+
         let config = { tushareToken: localStorage.getItem('tushareToken') || '', dataSource: localStorage.getItem('dataSource') || 'mock' };
         let sectorChart = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
             renderSectorChart();
+            // 页面加载时自动检查 API 状态
+            checkApiStatus();
         });
+
+        // 检查 API 服务状态
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_CONFIG.baseUrl}/api/health`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API 服务状态:', data);
+                    updateApiStatusIndicator(true, data.version);
+                } else {
+                    updateApiStatusIndicator(false);
+                }
+            } catch (error) {
+                console.log('API 服务未启动:', error.message);
+                updateApiStatusIndicator(false);
+            }
+        }
+
+        // 更新 API 状态指示器
+        function updateApiStatusIndicator(connected, version) {
+            const dot = document.getElementById('apiStatusDot');
+            const text = document.getElementById('apiStatusText');
+            
+            if (connected) {
+                dot.className = 'status-dot active';
+                text.textContent = config.dataSource === 'tushare' && config.tushareToken 
+                    ? `API v${version}` 
+                    : 'API 已连接';
+            } else {
+                dot.className = 'status-dot';
+                text.textContent = config.dataSource === 'tushare' && config.tushareToken 
+                    ? 'API 离线' 
+                    : '模拟数据';
+            }
+        }
 
         function loadConfig() {
             document.getElementById('tushareToken').value = config.tushareToken;
@@ -414,9 +471,12 @@
         function testApi() {
             const endpoint = document.getElementById('apiEndpoint').value;
             const resultEl = document.getElementById('apiResult');
-            resultEl.textContent = '请求中...';
+            const fullUrl = `${API_CONFIG.baseUrl}${endpoint}`;
+            
+            resultEl.textContent = `请求中...\nURL: ${fullUrl}`;
             resultEl.className = 'api-result';
-            fetch(endpoint)
+            
+            fetch(fullUrl)
                 .then(response => {
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     return response.json();
@@ -427,7 +487,7 @@
                     showToast('API 请求成功');
                 })
                 .catch(error => {
-                    resultEl.textContent = `错误：${error.message}\n\n注意：当前为静态页面，API 需要后端服务支持。\n本地运行：python -m http.server 8000`;
+                    resultEl.textContent = `错误：${error.message}\n\n请求 URL: ${fullUrl}\n\n可能原因：\n1. 后端服务未启动（运行: python -m uvicorn app.main:app --reload）\n2. 端口不匹配（默认 8000）\n3. CORS 跨域问题\n4. GitHub Pages 静态页面无法直接访问本地 API`;
                     resultEl.className = 'api-result error';
                     showToast('API 请求失败', 'error');
                 });
@@ -435,118 +495,47 @@
 
         function quickTest(type) {
             const resultEl = document.getElementById('apiResult');
-            
+            resultEl.textContent = '请求中...';
+            resultEl.className = 'api-result';
+
             switch(type) {
                 case 'health':
-                    fetch('/api/health')
-                        .then(response => response.json())
+                    fetch(`${API_CONFIG.baseUrl}/api/health`)
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            return response.json();
+                        })
                         .then(data => {
                             resultEl.textContent = JSON.stringify(data, null, 2);
                             resultEl.className = 'api-result success';
                             showToast('健康检查通过');
+                            updateApiStatusIndicator(true, data.version);
                         })
                         .catch(error => {
                             resultEl.textContent = JSON.stringify({
                                 status: 'error',
                                 error: error.message,
-                                message: '无法连接到后端服务，请启动 FastAPI 服务'
+                                url: `${API_CONFIG.baseUrl}/api/health`,
+                                message: '无法连接到后端服务',
+                                solution: '请确保后端服务已启动: python -m uvicorn app.main:app --reload'
                             }, null, 2);
                             resultEl.className = 'api-result error';
                             showToast('后端服务不可用', 'error');
+                            updateApiStatusIndicator(false);
                         });
                     break;
-                    
+
                 case 'connectivity':
                     if (config.dataSource === 'tushare' && config.tushareToken) {
-                        // 通过后端代理测试 TuShare 连接
-                        fetch('/api/tushare/test', {
+                        fetch(`${API_CONFIG.baseUrl}/api/tushare/test`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ token: config.tushareToken })
                         })
-                        .then(response => response.json())
-                        .then(data => {
-                            resultEl.textContent = JSON.stringify(data, null, 2);
-                            resultEl.className = data.status === 'connected' ? 'api-result success' : 'api-result error';
-                            showToast(data.message, data.status === 'connected' ? 'success' : 'error');
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            return response.json();
                         })
-                        .catch(error => {
-                            resultEl.textContent = JSON.stringify({
-                                status: 'error',
-                                error: error.message,
-                                message: '无法连接到后端服务，请启动 FastAPI 服务'
-                            }, null, 2);
-                            resultEl.className = 'api-result error';
-                            showToast('后端服务不可用', 'error');
-                        });
-                    } else {
-                        resultEl.textContent = JSON.stringify({
-                            status: 'warning',
-                            message: '未配置 TuShare Token，无法测试 API 连通性',
-                            dataSource: config.dataSource,
-                            tokenConfigured: !!config.tushareToken
-                        }, null, 2);
-                        resultEl.className = 'api-result error';
-                        showToast('请先配置 TuShare Token', 'warning');
-                    }
-                    break;
-                    
-                case 'data':
-                    if (config.dataSource === 'tushare' && config.tushareToken) {
-                        // 测试数据获取
-                        fetch('/api/indices')
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    resultEl.textContent = JSON.stringify({
-                                        status: 'success',
-                                        message: '数据获取成功',
-                                        records: data.data?.length || 0,
-                                        sample: data.data?.[0],
-                                        lastUpdate: new Date().toISOString()
-                                    }, null, 2);
-                                    resultEl.className = 'api-result success';
-                                    showToast('数据获取测试成功');
-                                } else {
-                                    resultEl.textContent = JSON.stringify({
-                                        status: 'error',
-                                        message: data.message || '数据获取失败',
-                                        error: data.error
-                                    }, null, 2);
-                                    resultEl.className = 'api-result error';
-                                    showToast('数据获取失败', 'error');
-                                }
-                            })
-                            .catch(error => {
-                                resultEl.textContent = JSON.stringify({
-                                    status: 'error',
-                                    error: error.message,
-                                    message: '无法连接到后端服务，请启动 FastAPI 服务'
-                                }, null, 2);
-                                resultEl.className = 'api-result error';
-                                showToast('后端服务不可用', 'error');
-                            });
-                    } else {
-                        resultEl.textContent = JSON.stringify({
-                            status: 'warning',
-                            message: '未配置 TuShare Token，无法测试数据获取',
-                            dataSource: config.dataSource,
-                            tokenConfigured: !!config.tushareToken
-                        }, null, 2);
-                        resultEl.className = 'api-result error';
-                        showToast('请先配置 TuShare Token', 'warning');
-                    }
-                    break;
-                    
-                case 'auth':
-                    if (config.dataSource === 'tushare' && config.tushareToken) {
-                        // 测试权限
-                        fetch('/api/tushare/test', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token: config.tushareToken })
-                        })
-                        .then(response => response.json())
                         .then(data => {
                             resultEl.textContent = JSON.stringify(data, null, 2);
                             resultEl.className = data.status === 'connected' || data.status === 'limited_access' ? 'api-result success' : 'api-result error';
@@ -556,7 +545,86 @@
                             resultEl.textContent = JSON.stringify({
                                 status: 'error',
                                 error: error.message,
-                                message: '无法连接到后端服务，请启动 FastAPI 服务'
+                                url: `${API_CONFIG.baseUrl}/api/tushare/test`,
+                                message: '无法连接到后端服务'
+                            }, null, 2);
+                            resultEl.className = 'api-result error';
+                            showToast('后端服务不可用', 'error');
+                        });
+                    } else {
+                        resultEl.textContent = JSON.stringify({
+                            status: 'not_configured',
+                            message: '未配置 TuShare Token',
+                            dataSource: config.dataSource,
+                            tokenConfigured: !!config.tushareToken,
+                            suggestion: '请在设置中配置有效的 TuShare Token'
+                        }, null, 2);
+                        resultEl.className = 'api-result error';
+                        showToast('请先配置 Token', 'warning');
+                    }
+                    break;
+
+                case 'data':
+                    fetch(`${API_CONFIG.baseUrl}/api/indices`)
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'success',
+                                    message: '数据获取成功',
+                                    records: data.data?.length || 0,
+                                    sample: data.data?.[0],
+                                    lastUpdate: new Date().toISOString()
+                                }, null, 2);
+                                resultEl.className = 'api-result success';
+                                showToast('数据获取测试成功');
+                            } else {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'error',
+                                    message: data.message || '数据获取失败',
+                                    error: data.error
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('数据获取失败', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                url: `${API_CONFIG.baseUrl}/api/indices`,
+                                message: '无法连接到后端服务'
+                            }, null, 2);
+                            resultEl.className = 'api-result error';
+                            showToast('后端服务不可用', 'error');
+                        });
+                    break;
+
+                case 'auth':
+                    if (config.dataSource === 'tushare' && config.tushareToken) {
+                        fetch(`${API_CONFIG.baseUrl}/api/tushare/test`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: config.tushareToken })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            return response.json();
+                        })
+                        .then(data => {
+                            resultEl.textContent = JSON.stringify(data, null, 2);
+                            resultEl.className = data.status === 'connected' || data.status === 'limited_access' ? 'api-result success' : 'api-result error';
+                            showToast(data.message, data.status === 'connected' || data.status === 'limited_access' ? 'success' : 'error');
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                url: `${API_CONFIG.baseUrl}/api/tushare/test`,
+                                message: '无法连接到后端服务'
                             }, null, 2);
                             resultEl.className = 'api-result error';
                             showToast('后端服务不可用', 'error');
@@ -575,7 +643,7 @@
                     break;
             }
         }
-        
+
         function formatDate(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');

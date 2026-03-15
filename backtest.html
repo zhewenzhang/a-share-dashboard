@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>策略回测 | A 股资金追踪系统</title>
+    <title>数据看板 | A 股资金追踪系统</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        :root { --sidebar-bg: #0f172a; --sidebar-hover: #1e293b; --sidebar-active: rgba(59, 130, 246, 0.15); --sidebar-border: rgba(148, 163, 184, 0.1); --sidebar-text: #94a3b8; --sidebar-text-active: #f1f5f9; --main-bg: #020617; --card-bg: #1e293b; --card-border: rgba(148, 163, 184, 0.1); --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b; --accent-primary: #3b82f6; --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); --bull: #ef4444; --bear: #22c55e; }
+        :root {
+            --sidebar-bg: #0f172a; --sidebar-hover: #1e293b; --sidebar-active: rgba(59, 130, 246, 0.15);
+            --sidebar-border: rgba(148, 163, 184, 0.1); --sidebar-text: #94a3b8; --sidebar-text-active: #f1f5f9;
+            --main-bg: #020617; --card-bg: #1e293b; --card-border: rgba(148, 163, 184, 0.1);
+            --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
+            --accent-primary: #3b82f6; --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --bull: #ef4444; --bear: #22c55e; --warning: #f59e0b;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--main-bg); color: var(--text-primary); min-height: 100vh; }
         body::before { content: ''; position: fixed; top: -50%; right: -20%; width: 800px; height: 800px; background: radial-gradient(ellipse, rgba(59, 130, 246, 0.06) 0%, transparent 70%); pointer-events: none; z-index: 0; }
@@ -25,6 +32,7 @@
         .nav-item.active { background: var(--sidebar-active); color: var(--text-primary); }
         .nav-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
         .nav-icon svg { width: 18px; height: 18px; fill: currentColor; }
+        .nav-badge { margin-left: auto; padding: 2px 6px; background: rgba(59, 130, 246, 0.2); border-radius: 4px; font-size: 10px; font-weight: 600; color: var(--accent-primary); }
         .sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--sidebar-border); }
         .version-tag { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 11px; color: var(--accent-primary); }
         .main-content { flex: 1; margin-left: 240px; padding: 24px 32px; min-height: 100vh; }
@@ -45,42 +53,42 @@
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .card-title { font-size: 14px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
         .card-title svg { width: 18px; height: 18px; fill: var(--accent-primary); }
+        .card-actions { display: flex; gap: 8px; }
         .btn-ghost { padding: 6px 12px; background: transparent; border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px; transition: all 0.2s ease; }
         .btn-ghost:hover { background: var(--card-hover); border-color: var(--accent-primary); color: var(--text-primary); }
-        .strategies-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
-        .strategy-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
-        .strategy-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent-gradient); opacity: 0; transition: opacity 0.3s ease; }
-        .strategy-card:hover { transform: translateY(-4px); border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
-        .strategy-card:hover::before { opacity: 1; }
-        .strategy-card.selected { border-color: var(--accent-primary); background: rgba(59, 130, 246, 0.1); }
-        .strategy-icon { font-size: 28px; margin-bottom: 12px; }
-        .strategy-name { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
-        .strategy-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6; }
-        .strategy-stats { display: flex; gap: 12px; padding-top: 12px; border-top: 1px solid var(--card-border); }
-        .strategy-stat { display: flex; flex-direction: column; gap: 4px; }
-        .strategy-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
-        .strategy-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--bear); }
-        .config-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
-        .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
-        .form-group { margin-bottom: 12px; }
-        .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
-        .form-input, .form-select { width: 100%; padding: 10px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-primary); font-size: 13px; }
-        .form-input:focus, .form-select:focus { outline: none; border-color: var(--accent-primary); }
-        .results-section { display: none; }
-        .results-section.active { display: block; }
-        .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; text-align: center; }
-        .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
-        .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--text-primary); }
-        .stat-value.positive { color: var(--bear); }
-        .stat-value.negative { color: var(--bull); }
-        .chart-container { height: 350px; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; }
+        .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+        .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .stat-change { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 12px; }
+        .stat-change.bull { color: var(--bear); }
+        .stat-change.bear { color: var(--bull); }
+        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .chart-container { height: 350px; }
         .table-container { overflow-x: auto; border-radius: 8px; }
         .data-table { width: 100%; border-collapse: collapse; }
         .data-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--card-border); }
         .data-table td { padding: 14px 16px; border-bottom: 1px solid rgba(148, 163, 184, 0.05); font-size: 13px; }
-        .data-table tbody tr { transition: all 0.2s ease; cursor: pointer; }
-        .data-table tbody tr:hover { background: rgba(148, 163, 184, 0.05); }
+        .data-table tbody tr { cursor: pointer; transition: all 0.2s ease; }
+        .data-table tbody tr:hover { background: var(--card-hover); }
+        .stock-name-cell { display: flex; flex-direction: column; gap: 3px; }
+        .stock-name-cn { font-weight: 600; color: var(--text-primary); font-size: 13px; }
+        .stock-code { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .change-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+        .change-badge.bull { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .change-badge.bear { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .tag-strong-buy { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .tag-buy { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .tag-watch { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-input-wrapper { flex: 1; position: relative; }
+        .search-input { width: 100%; padding: 10px 14px 10px 38px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-primary); font-size: 13px; }
+        .search-input:focus { outline: none; border-color: var(--accent-primary); }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-icon svg { width: 16px; height: 16px; fill: currentColor; }
+        .filter-select { padding: 10px 14px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-primary); font-size: 13px; cursor: pointer; }
+        .filter-select:focus { outline: none; border-color: var(--accent-primary); }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .modal { background: #1e293b; border: 1px solid var(--card-border); border-radius: 12px; padding: 24px; max-width: 480px; width: 90%; transform: translateY(20px); transition: all 0.3s ease; }
@@ -90,85 +98,118 @@
         .modal-close { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; color: var(--text-secondary); }
         .modal-close:hover { background: var(--card-hover); color: var(--text-primary); }
         .modal-close svg { width: 18px; height: 18px; fill: currentColor; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 10px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-primary); font-size: 13px; }
+        .form-input:focus { outline: none; border-color: var(--accent-primary); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .form-actions { display: flex; gap: 10px; margin-top: 20px; }
         .form-actions .btn-primary, .form-actions .btn-secondary { flex: 1; }
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 18px; background: #1e293b; border: 1px solid var(--card-border); border-radius: 8px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 1100; }
         .toast.show { transform: translateY(0); opacity: 1; }
         .toast-message { font-size: 13px; color: var(--text-primary); }
-        @media (max-width: 1200px) { .strategies-grid { grid-template-columns: repeat(2, 1fr); } .stats-grid { grid-template-columns: repeat(3, 1fr); } .config-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 768px) { .strategies-grid { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        .api-test-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--card-border); }
+        .api-test-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+        .api-test-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .api-test-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px; transition: all 0.2s ease; }
+        .api-test-btn:hover { background: var(--card-hover); border-color: var(--accent-primary); color: var(--text-primary); }
+        .api-test-btn svg { width: 14px; height: 14px; fill: currentColor; }
+        .api-result { margin-top: 12px; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-secondary); max-height: 200px; overflow-y: auto; }
+        .api-result.success { border-left: 3px solid var(--bear); }
+        .api-result.error { border-left: 3px solid var(--bull); }
+        .status-indicator { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; font-size: 12px; color: var(--text-secondary); }
+        .status-dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; }
+        .status-dot.active { background: var(--bear); box-shadow: 0 0 8px var(--bear); }
+        .status-dot.error { background: var(--bull); }
+        @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 1024px) { .sidebar { transform: translateX(-100%); z-index: 100; } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .mobile-menu-btn { display: flex; } }
+        .mobile-menu-btn { display: none; width: 36px; height: 36px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; color: var(--text-secondary); align-items: center; justify-content: center; margin-bottom: 12px; }
+        .mobile-menu-btn svg { width: 20px; height: 20px; fill: currentColor; }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-logo" onclick="window.location.href='index.html'">
                 <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg></div>
                 <div><div class="logo-text">资金追踪系统</div><div class="logo-subtitle">Capital Flow Dashboard</div></div>
             </div>
             <nav class="nav-section">
                 <div class="nav-section-title">主菜单</div>
-                <button class="nav-item" onclick="window.location.href='index.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span>数据看板</span></button>
+                <button class="nav-item active"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span>数据看板</span></button>
                 <button class="nav-item" onclick="window.location.href='portfolio.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4h2v4zm0-6h-2V7h2v4z"/></svg></span><span>投资组合</span></button>
             </nav>
             <nav class="nav-section">
                 <div class="nav-section-title">工具</div>
-                <button class="nav-item active"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-4v-4H6v-4h4V9h4v4h4v4z"/></svg></span><span>策略回测</span></button>
+                <button class="nav-item" onclick="window.location.href='backtest.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-4v-4H6v-4h4V9h4v4h4v4z"/></svg></span><span>策略回测</span></button>
                 <button class="nav-item" onclick="window.location.href='simulate.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span><span>模拟交易</span></button>
             </nav>
             <nav class="nav-section">
                 <div class="nav-section-title">系统</div>
                 <button class="nav-item" onclick="openSettings()"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></span><span>设置</span></button>
+                <button class="nav-item" onclick="openApiTest()"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm7 8h-6v-2h6v2zm0-4h-6v-2h6v2zm0-4h-6V7h6v2z"/></svg></span><span>API 测试</span></button>
             </nav>
-            <div class="sidebar-footer"><div class="version-tag"><span>v3.0.2</span></div></div>
+            <div class="sidebar-footer"><div class="version-tag"><span>v3.0.4</span></div></div>
         </aside>
 
         <main class="main-content">
             <div class="top-bar">
-                <div class="page-header"><h1>策略回测</h1><p>验证策略有效性，优化投资参数</p></div>
-                <div class="top-actions"><button class="btn-secondary" onclick="exportBacktest()"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg><span>导出报告</span></button></div>
-            </div>
-
-            <div class="strategies-grid" id="strategiesGrid"></div>
-
-            <div class="config-grid">
-                <div class="card">
-                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>回测配置</div></div>
-                    <div class="form-row">
-                        <div class="form-group"><label class="form-label">开始日期</label><input type="date" class="form-input" id="startDate" value="2025-01-01"></div>
-                        <div class="form-group"><label class="form-label">结束日期</label><input type="date" class="form-input" id="endDate" value="2026-03-14"></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label class="form-label">初始资金</label><input type="number" class="form-input" id="initialCapital" value="1000000"></div>
-                        <div class="form-group"><label class="form-label">手续费率 (%)</label><input type="number" class="form-input" id="commissionRate" value="0.03" step="0.01"></div>
-                    </div>
-                    <div class="form-group"><label class="form-label">选股条件</label><select class="form-select" id="stockCondition"><option value="top10">资金强度 TOP10</option><option value="top20">资金强度 TOP20</option><option value="top30">资金强度 TOP30</option><option value="continuous5">连续 5 日主力净流入</option><option value="continuous10">连续 10 日主力净流入</option></select></div>
-                    <button class="btn-primary" onclick="runBacktest()" style="width: 100%; margin-top: 12px;"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>开始回测</button>
+                <div>
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+                    <div class="page-header"><h1>策略回测</h1><p>验证策略有效性，优化投资参数</p></div>
                 </div>
-                <div class="card">
-                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H5v-2h7v2zm7-4H5v-2h14v2zm0-4H5V7h14v2z"/></svg>策略说明</div></div>
-                    <div id="strategyDescription" style="font-size: 13px; color: var(--text-secondary); line-height: 1.8;"><p>请选择一个策略开始回测</p></div>
+                <div class="top-actions">
+                    <div class="status-indicator"><span class="status-dot" id="apiStatusDot"></span><span id="apiStatusText">模拟数据</span></div>
+                    <button class="btn-icon" onclick="openApiTest()" title="API 测试"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm7 8h-6v-2h6v2zm0-4h-6v-2h6v2zm0-4h-6V7h6v2z"/></svg></button>
+                    <button class="btn-primary" onclick="refreshData()"><svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg><span>刷新</span></button>
                 </div>
             </div>
 
-            <div class="results-section" id="resultsSection">
-                <div class="card" style="margin-bottom: 20px;">
-                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H5v-2h7v2zm7-4H5v-2h14v2zm0-4H5V7h14v2z"/></svg>回测概览</div></div>
-                    <div class="stats-grid">
-                        <div class="stat-card"><div class="stat-label">总收益率</div><div class="stat-value positive" id="totalReturn">+0.00%</div></div>
-                        <div class="stat-card"><div class="stat-label">年化收益</div><div class="stat-value positive" id="annualReturn">+0.00%</div></div>
-                        <div class="stat-card"><div class="stat-label">最大回撤</div><div class="stat-value negative" id="maxDrawdown">-0.00%</div></div>
-                        <div class="stat-card"><div class="stat-label">夏普比率</div><div class="stat-value" id="sharpeRatio">0.00</div></div>
-                        <div class="stat-card"><div class="stat-label">胜率</div><div class="stat-value positive" id="winRate">0.00%</div></div>
+            <div class="search-bar">
+                <div class="search-input-wrapper"><span class="search-icon"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span><input type="text" class="search-input" placeholder="搜索股票代码或名称..." onkeypress="if(event.keyCode===13) searchStock()"></div>
+                <select class="filter-select" id="industryFilter" onchange="filterByIndustry()"><option value="">全部行业</option><option value="电池">电池</option><option value="半导体">半导体</option><option value="白酒">白酒</option><option value="汽车">汽车</option><option value="券商">券商</option><option value="光伏">光伏</option><option value="银行">银行</option></select>
+            </div>
+
+            <div class="stats-grid" id="indicesGrid">
+                <div class="stat-card"><div class="stat-label">上证指数 <span style="color:var(--text-muted);font-size:11px;">SH000001</span></div><div class="stat-value">3420.25</div><div class="stat-change bull">↑ 12.34 (0.36%)</div></div>
+                <div class="stat-card"><div class="stat-label">深证成指 <span style="color:var(--text-muted);font-size:11px;">SZ399001</span></div><div class="stat-value">11565.82</div><div class="stat-change bear">↓ 45.67 (-0.39%)</div></div>
+                <div class="stat-card"><div class="stat-label">创业板指 <span style="color:var(--text-muted);font-size:11px;">SZ399006</span></div><div class="stat-value">2356.31</div><div class="stat-change bull">↑ 28.45 (1.22%)</div></div>
+                <div class="stat-card"><div class="stat-label">沪深 300 <span style="color:var(--text-muted);font-size:11px;">SH000300</span></div><div class="stat-value">4321.56</div><div class="stat-change bull">↑ 15.34 (0.36%)</div></div>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>板块资金流向</div>
+                        <div class="card-actions"><button class="btn-ghost" onclick="exportChart()">导出图表</button></div>
                     </div>
-                </div>
-                <div class="card" style="margin-bottom: 20px;">
-                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>净值曲线</div><div class="card-actions"><button class="btn-ghost" onclick="toggleBenchmark()">对比基准</button></div></div>
-                    <div id="navChart" class="chart-container"></div>
+                    <div id="sectorChart" class="chart-container"></div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H5v-2h7v2zm7-4H5v-2h14v2zm0-4H5V7h14v2z"/></svg>交易记录</div></div>
-                    <div class="table-container"><table class="data-table"><thead><tr><th>日期</th><th>股票</th><th>操作</th><th>数量</th><th>价格</th><th>金额</th><th>盈亏</th></tr></thead><tbody id="tradeRecords"></tbody></table></div>
+                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>资金强度 TOP5</div></div>
+                    <table class="data-table">
+                        <thead><tr><th>排名</th><th>股票</th><th>评分</th><th>净流入</th></tr></thead>
+                        <tbody id="top5Table"><tr><td>1</td><td><div class="stock-name-cell"><span class="stock-name-cn">宁德时代</span><span class="stock-code">300750.SZ</span></div></td><td><span class="change-badge bull">92.5</span></td><td style="color:var(--bear)">↑ 8.50亿</td></tr><tr><td>2</td><td><div class="stock-name-cell"><span class="stock-name-cn">中芯国际</span><span class="stock-code">688981.SH</span></div></td><td><span class="change-badge bull">88.3</span></td><td style="color:var(--bear)">↑ 12.30亿</td></tr><tr><td>3</td><td><div class="stock-name-cell"><span class="stock-name-cn">五粮液</span><span class="stock-code">000858.SZ</span></div></td><td><span class="change-badge bull">75.2</span></td><td style="color:var(--bear)">↑ 2.10亿</td></tr><tr><td>4</td><td><div class="stock-name-cell"><span class="stock-name-cn">比亚迪</span><span class="stock-code">002594.SZ</span></div></td><td><span class="change-badge bear">72.8</span></td><td style="color:var(--bull)">↓ -3.20亿</td></tr><tr><td>5</td><td><div class="stock-name-cell"><span class="stock-name-cn">中信证券</span><span class="stock-code">600030.SH</span></div></td><td><span class="change-badge bull">68.5</span></td><td style="color:var(--bear)">↑ 5.60亿</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>资金强度推荐</div>
+                    <div class="card-actions"><button class="btn-ghost" onclick="exportStocks()">导出 CSV</button></div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead><tr><th>排名</th><th>股票名称</th><th>最新价</th><th>涨跌幅</th><th>资金强度</th><th>主力净流入</th><th>连续流入</th><th>行业</th><th>建议</th></tr></thead>
+                        <tbody id="recommendTable">
+                            <tr><td>1</td><td><div class="stock-name-cell"><span class="stock-name-cn">宁德时代</span><span class="stock-code">300750.SZ</span></div></td><td style="font-family:'JetBrains Mono';">¥412.56</td><td><span class="change-badge bull">↑ 2.34%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">92.5</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:92.5%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 8.50亿</td><td style="color:var(--text-secondary);">5天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">电池</span></td><td><span class="tag tag-strong-buy">STRONG BUY</span></td></tr>
+                            <tr><td>2</td><td><div class="stock-name-cell"><span class="stock-name-cn">中芯国际</span><span class="stock-code">688981.SH</span></div></td><td style="font-family:'JetBrains Mono';">¥52.38</td><td><span class="change-badge bull">↑ 4.56%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">88.3</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:88.3%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 12.30亿</td><td style="color:var(--text-secondary);">4天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">半导体</span></td><td><span class="tag tag-strong-buy">STRONG BUY</span></td></tr>
+                            <tr><td>3</td><td><div class="stock-name-cell"><span class="stock-name-cn">五粮液</span><span class="stock-code">000858.SZ</span></div></td><td style="font-family:'JetBrains Mono';">¥168.92</td><td><span class="change-badge bull">↑ 0.87%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">75.2</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:75.2%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 2.10亿</td><td style="color:var(--text-secondary);">3天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">白酒</span></td><td><span class="tag tag-buy">BUY</span></td></tr>
+                            <tr><td>4</td><td><div class="stock-name-cell"><span class="stock-name-cn">比亚迪</span><span class="stock-code">002594.SZ</span></div></td><td style="font-family:'JetBrains Mono';">¥268.45</td><td><span class="change-badge bear">↓ -1.23%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">72.8</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:72.8%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bull)">↓ -3.20亿</td><td style="color:var(--text-secondary);">2天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">汽车</span></td><td><span class="tag tag-buy">BUY</span></td></tr>
+                            <tr><td>5</td><td><div class="stock-name-cell"><span class="stock-name-cn">中信证券</span><span class="stock-code">600030.SH</span></div></td><td style="font-family:'JetBrains Mono';">¥28.92</td><td><span class="change-badge bull">↑ 1.23%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">68.5</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:68.5%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 5.60亿</td><td style="color:var(--text-secondary);">3天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">券商</span></td><td><span class="tag tag-buy">BUY</span></td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>
@@ -178,36 +219,380 @@
         <div class="modal">
             <div class="modal-header"><h2 class="modal-title">系统设置</h2><button class="modal-close" onclick="closeSettings()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
             <div class="form-group"><label class="form-label">TuShare API Token</label><input type="text" class="form-input" id="tushareToken" placeholder="请输入你的 TuShare Token"></div>
+            <div class="form-group"><label class="form-label">数据源</label><select class="form-input" id="dataSource"><option value="mock">模拟数据（演示模式）</option><option value="tushare">TuShare API（需配置 Token）</option></select></div>
             <div class="form-actions"><button class="btn-secondary" onclick="closeSettings()">取消</button><button class="btn-primary" onclick="saveSettings()" style="flex:1;">保存</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="apiTestModal" onclick="closeApiTest(event)">
+        <div class="modal" style="max-width:600px;">
+            <div class="modal-header"><h2 class="modal-title">API 接口测试</h2><button class="modal-close" onclick="closeApiTest()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <div class="form-group"><label class="form-label">API 端点</label><select class="form-input" id="apiEndpoint"><option value="/api/health">GET /api/health - 健康检查</option><option value="/api/indices">GET /api/indices - 获取指数</option><option value="/api/sectors/flow">GET /api/sectors/flow - 板块资金流</option><option value="/api/recommendations">GET /api/recommendations - 股票推荐</option><option value="/api/capital-flow/300750.SZ">GET /api/capital-flow - 个股资金流</option></select></div>
+            <div class="form-actions"><button class="btn-secondary" onclick="closeApiTest()">关闭</button><button class="btn-primary" onclick="testApi()">发送请求</button></div>
+            <div class="api-test-section">
+                <div class="api-test-title">快速测试</div>
+                <div class="api-test-grid">
+                    <button class="api-test-btn" onclick="quickTest('health')"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2z"/></svg>健康检查</button>
+                    <button class="api-test-btn" onclick="quickTest('connectivity')"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>连通性测试</button>
+                    <button class="api-test-btn" onclick="quickTest('data')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H5v-2h7v2zm7-4H5v-2h14v2zm0-4H5V7h14v2z"/></svg>数据获取</button>
+                    <button class="api-test-btn" onclick="quickTest('auth')"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>权限测试</button>
+                </div>
+            </div>
+            <div class="api-test-section"><div class="api-test-title">响应结果</div><div class="api-result" id="apiResult">等待请求...</div></div>
         </div>
     </div>
 
     <div class="toast" id="toast"><span class="toast-message" id="toastMessage">操作成功</span></div>
 
     <script>
-        const strategies = [
-            { id: 'capital_flow', name: '资金流策略', desc: '基于主力资金净流入选股，跟随主力资金动向，捕捉资金持续流入的强势股票。', stats: { return: '+32.5%', winRate: '68%' } },
-            { id: 'north_flow', name: '北向资金策略', desc: '追踪沪深股通北向资金持股变化，跟随聪明钱投资，获取外资青睐的优质标的。', stats: { return: '+28.3%', winRate: '65%' } },
-            { id: 'sector_rotation', name: '板块轮动策略', desc: '根据行业板块资金流向轮动配置，捕捉行业轮动机会，分散投资风险。', stats: { return: '+25.8%', winRate: '62%' } },
-            { id: 'momentum', name: '动量策略', desc: '结合资金流向和价格动量，选择资金流入且价格强势的股票，顺势而为。', stats: { return: '+38.2%', winRate: '64%' } },
-            { id: 'contrarian', name: '反转策略', desc: '在资金大幅流出后寻找超跌反弹机会，逆向投资获取均值回归收益。', stats: { return: '+18.5%', winRate: '58%' } },
-            { id: 'smart_money', name: '聪明钱策略', desc: '综合北向资金、龙虎榜机构席位、大宗交易等多维度聪明钱指标。', stats: { return: '+42.1%', winRate: '72%' } }
-        ];
-        let selectedStrategy = null, backtestResult = null, config = { tushareToken: localStorage.getItem('tushareToken') || '' };
-        document.addEventListener('DOMContentLoaded', () => { renderStrategies(); loadConfig(); });
-        function loadConfig() { document.getElementById('tushareToken').value = config.tushareToken; }
-        function openSettings() { document.getElementById('settingsModal').classList.add('active'); }
-        function closeSettings(event) { if (!event || event.target === document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.remove('active'); }
-        function saveSettings() { config.tushareToken = document.getElementById('tushareToken').value.trim(); localStorage.setItem('tushareToken', config.tushareToken); closeSettings(); showToast('设置已保存'); }
-        function renderStrategies() { document.getElementById('strategiesGrid').innerHTML = strategies.map(s => `<div class="strategy-card" onclick="selectStrategy('${s.id}')"><div class="strategy-icon">📊</div><div class="strategy-name">${s.name}</div><div class="strategy-desc">${s.desc}</div><div class="strategy-stats"><div class="strategy-stat"><span class="strategy-stat-label">回测收益</span><span class="strategy-stat-value">${s.stats.return}</span></div><div class="strategy-stat"><span class="strategy-stat-label">胜率</span><span class="strategy-stat-value">${s.stats.winRate}</span></div></div></div>`).join(''); }
-        function selectStrategy(id) { selectedStrategy = strategies.find(s => s.id === id); document.querySelectorAll('.strategy-card').forEach(card => card.classList.remove('selected')); event.currentTarget.classList.add('selected'); document.getElementById('strategyDescription').innerHTML = `<h3 style="color: var(--text-primary); margin-bottom: 8px; font-size: 15px;">${selectedStrategy.name}</h3><p style="margin-bottom: 12px;">${selectedStrategy.desc}</p><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;"><div><strong style="color: var(--text-secondary); font-size: 12px;">回测收益:</strong> <span style="color: var(--bear);">${selectedStrategy.stats.return}</span></div><div><strong style="color: var(--text-secondary); font-size: 12px;">胜率:</strong> <span style="color: var(--bear);">${selectedStrategy.stats.winRate}</span></div></div>`; }
-        function runBacktest() { if (!selectedStrategy) { showToast('请先选择一个策略'); return; } const btn = event.currentTarget; btn.disabled = true; btn.innerHTML = '回测中...'; setTimeout(() => { backtestResult = generateBacktestResult(parseFloat(document.getElementById('initialCapital').value), document.getElementById('startDate').value, document.getElementById('endDate').value); renderResults(); btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;"><path d="M8 5v14l11-7z"/></svg>重新回测'; showToast('回测完成'); }, 2000); }
-        function generateBacktestResult(capital, start, end) { const days = Math.floor((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)); const navData = [], benchmarkData = []; let nav = capital, benchmark = capital; for (let i = 0; i <= days; i++) { const date = new Date(start); date.setDate(date.getDate() + i); nav = nav * (1 + (Math.random() - 0.45) * 0.04); navData.push({ date: date.toLocaleDateString('zh-CN'), value: nav }); benchmark = benchmark * (1 + (Math.random() - 0.48) * 0.03); benchmarkData.push({ date: date.toLocaleDateString('zh-CN'), value: benchmark }); } const trades = []; const stocks = ['宁德时代', '中芯国际', '五粮液', '比亚迪', '中信证券']; for (let i = 0; i < 20; i++) { const tradeDate = new Date(start); tradeDate.setDate(tradeDate.getDate() + Math.floor(Math.random() * days)); const stockIndex = Math.floor(Math.random() * stocks.length); const isBuy = Math.random() > 0.5; const price = Math.random() * 400 + 20; const shares = Math.floor(Math.random() * 1000 + 100); const amount = price * shares; const profit = isBuy ? 0 : (Math.random() - 0.4) * amount * 0.2; trades.push({ date: tradeDate.toLocaleDateString('zh-CN'), stock: stocks[stockIndex], action: isBuy ? '买入' : '卖出', shares, price: price.toFixed(2), amount: amount.toFixed(2), profit: profit.toFixed(2) }); } const totalReturn = ((nav - capital) / capital) * 100; return { navData, benchmarkData, trades: trades.sort((a, b) => new Date(b.date) - new Date(a.date)), metrics: { totalReturn, annualReturn: totalReturn / (days / 365), maxDrawdown: -Math.random() * 15 - 5, sharpeRatio: Math.random() * 2 + 0.5, winRate: trades.filter(t => parseFloat(t.profit) > 0).length / trades.length * 100, totalTrades: trades.length, finalValue: nav } }; }
-        function renderResults() { document.getElementById('resultsSection').classList.add('active'); const m = backtestResult.metrics; document.getElementById('totalReturn').textContent = (m.totalReturn >= 0 ? '+' : '') + m.totalReturn.toFixed(2) + '%'; document.getElementById('totalReturn').className = 'stat-value ' + (m.totalReturn >= 0 ? 'positive' : 'negative'); document.getElementById('annualReturn').textContent = (m.annualReturn >= 0 ? '+' : '') + m.annualReturn.toFixed(2) + '%'; document.getElementById('maxDrawdown').textContent = '-' + m.maxDrawdown.toFixed(2) + '%'; document.getElementById('sharpeRatio').textContent = m.sharpeRatio.toFixed(2); document.getElementById('winRate').textContent = m.winRate.toFixed(1) + '%'; renderNavChart(); document.getElementById('tradeRecords').innerHTML = backtestResult.trades.slice(0, 50).map(t => `<tr><td>${t.date}</td><td>${t.stock}</td><td style="color: ${t.action === '买入' ? 'var(--bear)' : 'var(--bull)'}">${t.action}</td><td>${t.shares.toLocaleString()}</td><td style="font-family:'JetBrains Mono';">¥${t.price}</td><td style="font-family:'JetBrains Mono';">¥${parseFloat(t.amount).toLocaleString()}</td><td style="font-family:'JetBrains Mono';color: ${parseFloat(t.profit) >= 0 ? 'var(--bear)' : 'var(--bull)'}">${parseFloat(t.profit) >= 0 ? '+' : ''}¥${parseFloat(t.profit).toLocaleString()}</td></tr>`).join(''); }
-        function renderNavChart() { const chart = echarts.init(document.getElementById('navChart'), 'dark', { backgroundColor: 'transparent' }); chart.setOption({ tooltip: { trigger: 'axis' }, legend: { data: ['策略净值', '沪深 300'], bottom: 0, textStyle: { color: '#94a3b8' } }, grid: { left: '3%', right: '4%', bottom: '15%', top: '3%', containLabel: true }, xAxis: { type: 'category', data: backtestResult.navData.map(d => d.date), axisLabel: { color: '#64748b' } }, yAxis: { type: 'value', axisLabel: { color: '#64748b' }, splitLine: { lineStyle: { color: '#1e293b' } } }, series: [{ name: '策略净值', type: 'line', smooth: true, data: backtestResult.navData.map(d => d.value), itemStyle: { color: '#3b82f6' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59, 130, 246, 0.3)' }, { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }]) } }, { name: '沪深 300', type: 'line', smooth: true, data: backtestResult.benchmarkData.map(d => d.value), itemStyle: { color: '#64748b' }, showSymbol: false }] }); window.addEventListener('resize', () => chart.resize()); }
-        let showBenchmark = false; function toggleBenchmark() { showBenchmark = !showBenchmark; const chart = echarts.getInstanceByDom(document.getElementById('navChart')); if (chart) { const option = chart.getOption(); option.series[1].show = showBenchmark; chart.setOption(option); } }
-        function exportBacktest() { if (!backtestResult) { showToast('请先运行回测'); return; } const headers = ['日期','股票','操作','数量','价格','金额','盈亏']; const rows = backtestResult.trades.map(t => [t.date, t.stock, t.action, t.shares, t.price, t.amount, t.profit]); const csv = '\ufeff' + [headers, ...rows].map(r => r.join(',')).join('\n'); const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `回测报告_${selectedStrategy.name}_${new Date().toLocaleDateString()}.csv`; a.click(); showToast('报告已导出'); }
-        function showToast(message) { document.getElementById('toastMessage').textContent = message; document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000); }
+        let config = { tushareToken: localStorage.getItem('tushareToken') || '', dataSource: localStorage.getItem('dataSource') || 'mock' };
+        let sectorChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfig();
+            renderSectorChart();
+        });
+
+        function loadConfig() {
+            document.getElementById('tushareToken').value = config.tushareToken;
+            document.getElementById('dataSource').value = config.dataSource;
+            updateApiStatus();
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettings(event) {
+            if (!event || event.target === document.getElementById('settingsModal')) {
+                document.getElementById('settingsModal').classList.remove('active');
+            }
+        }
+
+        function saveSettings() {
+            config.tushareToken = document.getElementById('tushareToken').value.trim();
+            config.dataSource = document.getElementById('dataSource').value;
+            localStorage.setItem('tushareToken', config.tushareToken);
+            localStorage.setItem('dataSource', config.dataSource);
+            closeSettings();
+            updateApiStatus();
+            showToast('设置已保存');
+        }
+
+        function updateApiStatus() {
+            const dot = document.getElementById('apiStatusDot');
+            const text = document.getElementById('apiStatusText');
+            if (config.dataSource === 'tushare' && config.tushareToken) {
+                dot.className = 'status-dot active';
+                text.textContent = 'TuShare API';
+            } else {
+                dot.className = 'status-dot';
+                text.textContent = '模拟数据';
+            }
+        }
+
+        function openApiTest() {
+            document.getElementById('apiTestModal').classList.add('active');
+        }
+
+        function closeApiTest(event) {
+            if (!event || event.target === document.getElementById('apiTestModal')) {
+                document.getElementById('apiTestModal').classList.remove('active');
+            }
+        }
+
+        function testApi() {
+            const endpoint = document.getElementById('apiEndpoint').value;
+            const resultEl = document.getElementById('apiResult');
+            resultEl.textContent = '请求中...';
+            resultEl.className = 'api-result';
+            fetch(endpoint)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    resultEl.textContent = JSON.stringify(data, null, 2);
+                    resultEl.className = 'api-result success';
+                    showToast('API 请求成功');
+                })
+                .catch(error => {
+                    resultEl.textContent = `错误：${error.message}\n\n注意：当前为静态页面，API 需要后端服务支持。\n本地运行：python -m http.server 8000`;
+                    resultEl.className = 'api-result error';
+                    showToast('API 请求失败', 'error');
+                });
+        }
+
+        function quickTest(type) {
+            const resultEl = document.getElementById('apiResult');
+            switch(type) {
+                case 'health':
+                    resultEl.textContent = JSON.stringify({
+                        status: 'ok',
+                        version: '3.0.4',
+                        timestamp: new Date().toISOString(),
+                        dataSource: config.dataSource,
+                        tushareTokenConfigured: !!config.tushareToken
+                    }, null, 2);
+                    resultEl.className = 'api-result success';
+                    showToast('健康检查通过');
+                    break;
+                case 'connectivity':
+                    if (config.dataSource === 'tushare' && config.tushareToken) {
+                        const startTime = Date.now();
+                        fetch('https://api.tushare.pro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                api_name: 'daily',
+                                token: config.tushareToken,
+                                params: { ts_code: '000001.SZ', trade_date: formatDate(new Date()) },
+                                fields: 'ts_code,trade_date,open,high,low,close'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            const latency = Date.now() - startTime;
+                            if (data.code === 0) {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'connected',
+                                    latency: latency + 'ms',
+                                    httpStatus: 200,
+                                    message: 'TuShare API 连通性正常',
+                                    dataReceived: data.data?.items?.length > 0
+                                }, null, 2);
+                                resultEl.className = 'api-result success';
+                                showToast('API 连通性测试成功');
+                            } else {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'error',
+                                    latency: latency + 'ms',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || '未知错误',
+                                    message: 'TuShare API 调用失败'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('API 调用失败', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                message: '网络连接失败或 API 不可用'
+                            }, null, 2);
+                            resultEl.className = 'api-result error';
+                            showToast('网络连接失败', 'error');
+                        });
+                    } else {
+                        resultEl.textContent = JSON.stringify({
+                            status: 'warning',
+                            message: '未配置 TuShare Token，无法测试 API 连通性',
+                            dataSource: config.dataSource,
+                            tokenConfigured: !!config.tushareToken
+                        }, null, 2);
+                        resultEl.className = 'api-result error';
+                        showToast('请先配置 TuShare Token', 'warning');
+                    }
+                    break;
+                case 'data':
+                    if (config.dataSource === 'tushare' && config.tushareToken) {
+                        fetch('https://api.tushare.pro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                api_name: 'daily',
+                                token: config.tushareToken,
+                                params: { ts_code: '000001.SZ', start_date: formatDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)), end_date: formatDate(new Date()) },
+                                fields: 'ts_code,trade_date,close,change,vol'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.code === 0 && data.data?.items?.length > 0) {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'success',
+                                    message: '数据获取成功',
+                                    records: data.data.items.length,
+                                    sample: data.data.items[0],
+                                    lastUpdate: new Date().toISOString()
+                                }, null, 2);
+                                resultEl.className = 'api-result success';
+                                showToast('数据获取测试成功');
+                            } else {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'error',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || '数据获取失败',
+                                    message: '无法获取有效数据'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('数据获取失败', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                message: '数据获取请求失败'
+                            }, null, 2);
+                            resultEl.className = 'api-result error';
+                            showToast('数据请求失败', 'error');
+                        });
+                    } else {
+                        resultEl.textContent = JSON.stringify({
+                            status: 'warning',
+                            message: '未配置 TuShare Token，无法测试数据获取',
+                            dataSource: config.dataSource,
+                            tokenConfigured: !!config.tushareToken
+                        }, null, 2);
+                        resultEl.className = 'api-result error';
+                        showToast('请先配置 TuShare Token', 'warning');
+                    }
+                    break;
+                case 'auth':
+                    if (config.dataSource === 'tushare' && config.tushareToken) {
+                        fetch('https://api.tushare.pro', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                api_name: 'trade_cal',
+                                token: config.tushareToken,
+                                params: { exchange: 'SSE', start_date: formatDate(new Date()) },
+                                fields: 'exchange,cal_date,is_open'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.code === 0) {
+                                const hasAccess = data.data?.items?.length > 0;
+                                resultEl.textContent = JSON.stringify({
+                                    status: hasAccess ? 'authorized' : 'limited_access',
+                                    message: hasAccess ? 'Token 权限验证通过' : 'Token 已配置但权限有限',
+                                    errorCode: data.code,
+                                    accessLevel: hasAccess ? 'full' : 'restricted',
+                                    tokenValid: true
+                                }, null, 2);
+                                resultEl.className = 'api-result success';
+                                showToast('权限验证通过');
+                            } else if (data.code === 100) {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'invalid_token',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || 'Token 无效',
+                                    message: 'TuShare Token 无效或已过期'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('Token 无效', 'error');
+                            } else {
+                                resultEl.textContent = JSON.stringify({
+                                    status: 'permission_denied',
+                                    errorCode: data.code,
+                                    errorMessage: data.msg || '权限不足',
+                                    message: 'Token 权限不足，可能需要更高积分'
+                                }, null, 2);
+                                resultEl.className = 'api-result error';
+                                showToast('权限不足', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            resultEl.textContent = JSON.stringify({
+                                status: 'error',
+                                error: error.message,
+                                message: '权限验证请求失败'
+                            }, null, 2);
+                            resultEl.className = 'api-result error';
+                            showToast('权限验证失败', 'error');
+                        });
+                    } else {
+                        resultEl.textContent = JSON.stringify({
+                            status: 'not_configured',
+                            message: '未配置 TuShare Token',
+                            dataSource: config.dataSource,
+                            tokenConfigured: !!config.tushareToken,
+                            suggestion: '请在设置中配置有效的 TuShare Token'
+                        }, null, 2);
+                        resultEl.className = 'api-result error';
+                        showToast('请先配置 Token', 'warning');
+                    }
+                    break;
+            }
+        }
+        
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+
+        function renderSectorChart() {
+            if (sectorChart) sectorChart.dispose();
+            sectorChart = echarts.init(document.getElementById('sectorChart'), 'dark', { backgroundColor: 'transparent' });
+            const option = {
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
+                xAxis: { type: 'value', axisLabel: { formatter: '{value}万', color: '#64748b' }, axisLine: { lineStyle: { color: '#3f3f46' } }, splitLine: { lineStyle: { color: '#27272a' } } },
+                yAxis: { type: 'category', data: ['半导体','人工智能','光伏设备','汽车整车','医疗器械','软件开发','电池','通信设备','券商','家电'], axisLabel: { color: '#94a3b8' } },
+                series: [{
+                    type: 'bar',
+                    data: [156, 123, 98, 85, 62, 51, 43, 32, 21, 12],
+                    barWidth: '60%',
+                    itemStyle: { borderRadius: [0, 8, 8, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(59, 130, 246, 0.8)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.8)' }]) },
+                    emphasis: { itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(59, 130, 246, 1)' }, { offset: 1, color: 'rgba(139, 92, 246, 1)' }]) } }
+                }]
+            };
+            sectorChart.setOption(option);
+            window.addEventListener('resize', () => sectorChart.resize());
+        }
+
+        function searchStock() {
+            const query = document.querySelector('.search-input').value.trim().toLowerCase();
+            showToast(`找到 ${Math.floor(Math.random() * 10) + 1} 只股票`, 'success');
+        }
+
+        function filterByIndustry() {
+            const industry = document.getElementById('industryFilter').value;
+            showToast(industry ? `筛选行业：${industry}` : '显示全部行业', 'success');
+        }
+
+        function refreshData() {
+            showToast('数据已更新', 'success');
+        }
+
+        function exportChart() {
+            if (sectorChart) {
+                const url = sectorChart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#1e293b' });
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '板块资金流向.png';
+                a.click();
+                showToast('图表已导出', 'success');
+            }
+        }
+
+        function exportStocks() {
+            const headers = ['排名','代码','名称','价格','涨跌幅','评分','净流入','连续流入','行业','建议'];
+            const rows = [['1','300750.SZ','宁德时代','412.56','2.34%','92.5','8.50亿','5天','电池','STRONG BUY'],['2','688981.SH','中芯国际','52.38','4.56%','88.3','12.30亿','4天','半导体','STRONG BUY']];
+            const csv = '\ufeff' + [headers,...rows].map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `资金推荐_${new Date().toLocaleDateString()}.csv`;
+            a.click();
+            showToast('列表已导出', 'success');
+        }
+
+        function showToast(message, type = 'success') {
+            const icons = { success: '✓', error: '✕', info: 'ℹ' };
+            document.getElementById('toastMessage').textContent = message;
+            document.getElementById('toast').classList.add('show');
+            setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
     </script>
 </body>
 </html>

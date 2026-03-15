@@ -894,7 +894,13 @@
                     showToast('API 请求成功');
                 })
                 .catch(error => {
-                    resultEl.textContent = `错误：${error.message}\n\n注意：当前为静态页面，API 需要后端服务支持。\n本地运行：python -m http.server 8000`;
+                    let msg = error.message;
+                    if (msg.includes('404')) {
+                        msg = '接口不存在 (404)\n\n说明：当前为静态页面模式，API 接口需要后端服务支持。';
+                    } else if (msg.includes('Failed to fetch')) {
+                        msg = '无法连接到 API 服务\n\n说明：\n1. 当前为静态页面模式\n2. 如需使用 API，请启动后端服务\n3. 本地运行：python3 -m http.server 8000';
+                    }
+                    resultEl.textContent = `错误：${msg}`;
                     resultEl.className = 'api-result error';
                     showToast('API 请求失败', 'error');
                 });

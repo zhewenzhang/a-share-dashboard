@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数据看板 | A 股资金追踪系统</title>
+    <title>模拟交易 | A 股资金追踪系统</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --sidebar-bg: #0f172a; --sidebar-hover: #1e293b; --sidebar-active: rgba(59, 130, 246, 0.15);
@@ -16,7 +16,7 @@
             --bull: #ef4444; --bear: #22c55e; --warning: #f59e0b;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: var(--main-bg); color: var(--text-primary); min-height: 100vh; }
+        body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--main-bg); color: var(--text-primary); min-height: 100vh; }
         body::before { content: ''; position: fixed; top: -50%; right: -20%; width: 800px; height: 800px; background: radial-gradient(ellipse, rgba(59, 130, 246, 0.06) 0%, transparent 70%); pointer-events: none; z-index: 0; }
         .app-container { display: flex; min-height: 100vh; position: relative; z-index: 1; }
         .sidebar { width: 240px; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border); padding: 20px 12px; display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; }
@@ -57,7 +57,7 @@
         .btn-ghost { padding: 6px 12px; background: transparent; border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px; transition: all 0.2s ease; }
         .btn-ghost:hover { background: var(--card-hover); border-color: var(--accent-primary); color: var(--text-primary); }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-        .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
         .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
         .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--text-primary); }
         .stat-change { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 12px; }
@@ -70,7 +70,7 @@
         .data-table th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--card-border); }
         .data-table td { padding: 14px 16px; border-bottom: 1px solid rgba(148, 163, 184, 0.05); font-size: 13px; }
         .data-table tbody tr { cursor: pointer; transition: all 0.2s ease; }
-        .data-table tbody tr:hover { background: var(--card-hover); }
+        .data-table tbody tr:hover { background: rgba(148, 163, 184, 0.05); }
         .stock-name-cell { display: flex; flex-direction: column; gap: 3px; }
         .stock-name-cn { font-weight: 600; color: var(--text-primary); font-size: 13px; }
         .stock-code { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
@@ -81,14 +81,6 @@
         .tag-strong-buy { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
         .tag-buy { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
         .tag-watch { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
-        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-        .search-input-wrapper { flex: 1; position: relative; }
-        .search-input { width: 100%; padding: 10px 14px 10px 38px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-primary); font-size: 13px; }
-        .search-input:focus { outline: none; border-color: var(--accent-primary); }
-        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-        .search-icon svg { width: 16px; height: 16px; fill: currentColor; }
-        .filter-select { padding: 10px 14px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-primary); font-size: 13px; cursor: pointer; }
-        .filter-select:focus { outline: none; border-color: var(--accent-primary); }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .modal { background: #1e293b; border: 1px solid var(--card-border); border-radius: 12px; padding: 24px; max-width: 480px; width: 90%; transform: translateY(20px); transition: all 0.3s ease; }
@@ -108,19 +100,10 @@
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 18px; background: #1e293b; border: 1px solid var(--card-border); border-radius: 8px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 1100; }
         .toast.show { transform: translateY(0); opacity: 1; }
         .toast-message { font-size: 13px; color: var(--text-primary); }
-        .api-test-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--card-border); }
-        .api-test-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
-        .api-test-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .api-test-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px; transition: all 0.2s ease; }
-        .api-test-btn:hover { background: var(--card-hover); border-color: var(--accent-primary); color: var(--text-primary); }
-        .api-test-btn svg { width: 14px; height: 14px; fill: currentColor; }
-        .api-result { margin-top: 12px; padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-secondary); max-height: 200px; overflow-y: auto; }
-        .api-result.success { border-left: 3px solid var(--bear); }
-        .api-result.error { border-left: 3px solid var(--bull); }
-        .status-indicator { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; font-size: 12px; color: var(--text-secondary); }
-        .status-dot { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; }
-        .status-dot.active { background: var(--bear); box-shadow: 0 0 8px var(--bear); }
-        .status-dot.error { background: var(--bull); }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .empty-state-title { font-size: 16px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+        .empty-state-desc { font-size: 13px; margin-bottom: 20px; }
         @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } }
         @media (max-width: 1024px) { .sidebar { transform: translateX(-100%); z-index: 100; } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .mobile-menu-btn { display: flex; } }
         .mobile-menu-btn { display: none; width: 36px; height: 36px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; color: var(--text-secondary); align-items: center; justify-content: center; margin-bottom: 12px; }
@@ -136,18 +119,18 @@
             </div>
             <nav class="nav-section">
                 <div class="nav-section-title">主菜单</div>
-                <button class="nav-item active"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span>数据看板</span></button>
+                <button class="nav-item" onclick="window.location.href='index.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span>数据看板</span></button>
                 <button class="nav-item" onclick="window.location.href='portfolio.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4h2v4zm0-6h-2V7h2v4z"/></svg></span><span>投资组合</span></button>
             </nav>
             <nav class="nav-section">
                 <div class="nav-section-title">工具</div>
                 <button class="nav-item" onclick="window.location.href='backtest.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-4v-4H6v-4h4V9h4v4h4v4z"/></svg></span><span>策略回测</span></button>
-                <button class="nav-item" onclick="window.location.href='simulate.html'"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span><span>模拟交易</span></button>
+                <button class="nav-item active"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span><span>模拟交易</span></button>
             </nav>
             <nav class="nav-section">
                 <div class="nav-section-title">系统</div>
                 <button class="nav-item" onclick="openSettings()"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></span><span>设置</span></button>
-                <button class="nav-item" onclick="openApiTest()"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm7 8h-6v-2h6v2zm0-4h-6v-2h6v2zm0-4h-6V7h6v2z"/></svg></span><span>API 测试</span></button>
+                <button class="nav-item" onclick="openApiTest()"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-7 14h-2v-4h2v4zm0-6h-2V7h2v4z"/></svg></span><span>API 测试</span></button>
             </nav>
             <div class="sidebar-footer"><div class="version-tag"><span>v3.0.4</span></div></div>
         </aside>
@@ -155,59 +138,60 @@
         <main class="main-content">
             <div class="top-bar">
                 <div>
-                    <button class="mobile-menu-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V3H3z"/></svg></button>
                     <div class="page-header"><h1>模拟交易</h1><p>零风险验证策略，实时模拟盘运行</p></div>
                 </div>
                 <div class="top-actions">
                     <div class="status-indicator"><span class="status-dot" id="apiStatusDot"></span><span id="apiStatusText">模拟数据</span></div>
-                    <button class="btn-icon" onclick="openApiTest()" title="API 测试"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm7 8h-6v-2h6v2zm0-4h-6v-2h6v2zm0-4h-6V7h6v2z"/></svg></button>
+                    <button class="btn-icon" onclick="openApiTest()" title="API 测试"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-7 14h-2v-4h2v4zm0-6h-2V7h2v4z"/></svg></button>
                     <button class="btn-primary" onclick="refreshData()"><svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg><span>刷新</span></button>
                 </div>
             </div>
 
-            <div class="search-bar">
-                <div class="search-input-wrapper"><span class="search-icon"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span><input type="text" class="search-input" placeholder="搜索股票代码或名称..." onkeypress="if(event.keyCode===13) searchStock()"></div>
-                <select class="filter-select" id="industryFilter" onchange="filterByIndustry()"><option value="">全部行业</option><option value="电池">电池</option><option value="半导体">半导体</option><option value="白酒">白酒</option><option value="汽车">汽车</option><option value="券商">券商</option><option value="光伏">光伏</option><option value="银行">银行</option></select>
-            </div>
-
-            <div class="stats-grid" id="indicesGrid">
-                <div class="stat-card"><div class="stat-label">上证指数 <span style="color:var(--text-muted);font-size:11px;">SH000001</span></div><div class="stat-value">3420.25</div><div class="stat-change bull">↑ 12.34 (0.36%)</div></div>
-                <div class="stat-card"><div class="stat-label">深证成指 <span style="color:var(--text-muted);font-size:11px;">SZ399001</span></div><div class="stat-value">11565.82</div><div class="stat-change bear">↓ 45.67 (-0.39%)</div></div>
-                <div class="stat-card"><div class="stat-label">创业板指 <span style="color:var(--text-muted);font-size:11px;">SZ399006</span></div><div class="stat-value">2356.31</div><div class="stat-change bull">↑ 28.45 (1.22%)</div></div>
-                <div class="stat-card"><div class="stat-label">沪深 300 <span style="color:var(--text-muted);font-size:11px;">SH000300</span></div><div class="stat-value">4321.56</div><div class="stat-change bull">↑ 15.34 (0.36%)</div></div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-label">总资产</div><div class="stat-value" id="totalAssets">¥1,000,000</div><div class="stat-change" id="totalAssetsChange">--</div></div>
+                <div class="stat-card"><div class="stat-label">可用资金</div><div class="stat-value" id="availableCash">¥850,000</div><div class="stat-change">--</div></div>
+                <div class="stat-card"><div class="stat-label">持仓市值</div><div class="stat-value" id="positionValue">¥150,000</div><div class="stat-change" id="positionChange">+2.34%</div></div>
+                <div class="stat-card"><div class="stat-label">累计盈亏</div><div class="stat-value" id="totalProfit">+¥12,345</div><div class="stat-change bull" id="profitChange">+1.23%</div></div>
             </div>
 
             <div class="content-grid">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title"><svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>板块资金流向</div>
-                        <div class="card-actions"><button class="btn-ghost" onclick="exportChart()">导出图表</button></div>
+                        <div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4h2v4zm0-6h-2V7h2v4z"/></svg>当前持仓</div>
+                        <div class="card-actions"><button class="btn-ghost" onclick="exportPortfolio()">导出</button></div>
                     </div>
-                    <div id="sectorChart" class="chart-container"></div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>股票</th><th>持仓数量</th><th>成本价</th><th>当前价</th><th>市值</th><th>盈亏</th><th>收益率</th><th>操作</th></tr></thead>
+                            <tbody id="positionTable">
+                                <tr><td colspan="8" class="empty-state"><div class="empty-state-icon">💼</div><div class="empty-state-title">暂无持仓</div><div class="empty-state-desc">点击下方按钮开始交易</div><button class="btn-primary" onclick="openTradeModal()">+ 添加持仓</button></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>资金强度 TOP5</div></div>
-                    <table class="data-table">
-                        <thead><tr><th>排名</th><th>股票</th><th>评分</th><th>净流入</th></tr></thead>
-                        <tbody id="top5Table"><tr><td>1</td><td><div class="stock-name-cell"><span class="stock-name-cn">宁德时代</span><span class="stock-code">300750.SZ</span></div></td><td><span class="change-badge bull">92.5</span></td><td style="color:var(--bear)">↑ 8.50亿</td></tr><tr><td>2</td><td><div class="stock-name-cell"><span class="stock-name-cn">中芯国际</span><span class="stock-code">688981.SH</span></div></td><td><span class="change-badge bull">88.3</span></td><td style="color:var(--bear)">↑ 12.30亿</td></tr><tr><td>3</td><td><div class="stock-name-cell"><span class="stock-name-cn">五粮液</span><span class="stock-code">000858.SZ</span></div></td><td><span class="change-badge bull">75.2</span></td><td style="color:var(--bear)">↑ 2.10亿</td></tr><tr><td>4</td><td><div class="stock-name-cell"><span class="stock-name-cn">比亚迪</span><span class="stock-code">002594.SZ</span></div></td><td><span class="change-badge bear">72.8</span></td><td style="color:var(--bull)">↓ -3.20亿</td></tr><tr><td>5</td><td><div class="stock-name-cell"><span class="stock-name-cn">中信证券</span><span class="stock-code">600030.SH</span></div></td><td><span class="change-badge bull">68.5</span></td><td style="color:var(--bear)">↑ 5.60亿</td></tr></tbody>
-                    </table>
+                    <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>下单面板</div></div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">交易类型</label><select class="form-input" id="tradeType"><option value="buy">买入</option><option value="sell">卖出</option></select></div>
+                        <div class="form-group"><label class="form-label">股票代码</label><select class="form-input" id="stockSelect"></select></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">数量 (股)</label><input type="number" class="form-input" id="shares" placeholder="100 的整数倍"></div>
+                        <div class="form-group"><label class="form-label">参考价格</label><input type="text" class="form-input" id="refPrice" readonly></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">预计金额</label><input type="text" class="form-input" id="estimatedAmount" readonly></div>
+                    <button class="btn-primary" onclick="executeTrade()" style="width:100%;">下单</button>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header">
-                    <div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>资金强度推荐</div>
-                    <div class="card-actions"><button class="btn-ghost" onclick="exportStocks()">导出 CSV</button></div>
-                </div>
+                <div class="card-header"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-4h2v4zm0-6h-2V7h2v4z"/></svg>交易记录</div><div class="card-actions"><button class="btn-ghost" onclick="exportTrades()">导出记录</button></div></div>
                 <div class="table-container">
                     <table class="data-table">
-                        <thead><tr><th>排名</th><th>股票名称</th><th>最新价</th><th>涨跌幅</th><th>资金强度</th><th>主力净流入</th><th>连续流入</th><th>行业</th><th>建议</th></tr></thead>
-                        <tbody id="recommendTable">
-                            <tr><td>1</td><td><div class="stock-name-cell"><span class="stock-name-cn">宁德时代</span><span class="stock-code">300750.SZ</span></div></td><td style="font-family:'JetBrains Mono';">¥412.56</td><td><span class="change-badge bull">↑ 2.34%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">92.5</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:92.5%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 8.50亿</td><td style="color:var(--text-secondary);">5天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">电池</span></td><td><span class="tag tag-strong-buy">STRONG BUY</span></td></tr>
-                            <tr><td>2</td><td><div class="stock-name-cell"><span class="stock-name-cn">中芯国际</span><span class="stock-code">688981.SH</span></div></td><td style="font-family:'JetBrains Mono';">¥52.38</td><td><span class="change-badge bull">↑ 4.56%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">88.3</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:88.3%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 12.30亿</td><td style="color:var(--text-secondary);">4天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">半导体</span></td><td><span class="tag tag-strong-buy">STRONG BUY</span></td></tr>
-                            <tr><td>3</td><td><div class="stock-name-cell"><span class="stock-name-cn">五粮液</span><span class="stock-code">000858.SZ</span></div></td><td style="font-family:'JetBrains Mono';">¥168.92</td><td><span class="change-badge bull">↑ 0.87%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">75.2</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:75.2%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 2.10亿</td><td style="color:var(--text-secondary);">3天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">白酒</span></td><td><span class="tag tag-buy">BUY</span></td></tr>
-                            <tr><td>4</td><td><div class="stock-name-cell"><span class="stock-name-cn">比亚迪</span><span class="stock-code">002594.SZ</span></div></td><td style="font-family:'JetBrains Mono';">¥268.45</td><td><span class="change-badge bear">↓ -1.23%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">72.8</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:72.8%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bull)">↓ -3.20亿</td><td style="color:var(--text-secondary);">2天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">汽车</span></td><td><span class="tag tag-buy">BUY</span></td></tr>
-                            <tr><td>5</td><td><div class="stock-name-cell"><span class="stock-name-cn">中信证券</span><span class="stock-code">600030.SH</span></div></td><td style="font-family:'JetBrains Mono';">¥28.92</td><td><span class="change-badge bull">↑ 1.23%</span></td><td><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:600;color:var(--bear);">68.5</span><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:68.5%;background:var(--bear);border-radius:3px;"></div></div></div></td><td style="color:var(--bear)">↑ 5.60亿</td><td style="color:var(--text-secondary);">3天</td><td><span style="padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;">券商</span></td><td><span class="tag tag-buy">BUY</span></td></tr>
+                        <thead><tr><th>日期</th><th>股票</th><th>操作</th><th>数量</th><th>价格</th><th>金额</th><th>盈亏</th><th>备注</th></tr></thead>
+                        <tbody id="tradeTable">
+                            <tr><td colspan="8" class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-title">暂无交易记录</div><div class="empty-state-desc">开始交易后将显示历史记录</div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -215,42 +199,65 @@
         </main>
     </div>
 
+    <div class="modal-overlay" id="tradeModal" onclick="closeTradeModal(event)">
+        <div class="modal">
+            <div class="modal-header"><h2 class="modal-title">📝 下单交易</h2><button class="modal-close" onclick="closeTradeModal()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">交易类型</label><select class="form-input" id="modalTradeType"><option value="buy">买入</option><option value="sell">卖出</option></select></div>
+                <div class="form-group"><label class="form-label">股票代码</label><select class="form-input" id="modalStockSelect"></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label">数量 (股)</label><input type="number" class="form-input" id="modalShares" placeholder="100 的整数倍"></div>
+                <div class="form-group"><label class="form-label">参考价格</label><input type="text" class="form-input" id="modalRefPrice" readonly></div>
+            </div>
+            <div class="form-group"><label class="form-label">预计金额</label><input type="text" class="form-input" id="modalEstimatedAmount" readonly></div>
+            <div class="form-actions"><button class="btn-secondary" onclick="closeTradeModal()">取消</button><button class="btn-primary" onclick="executeModalTrade()">下单</button></div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="settingsModal" onclick="closeSettings(event)">
         <div class="modal">
-            <div class="modal-header"><h2 class="modal-title">系统设置</h2><button class="modal-close" onclick="closeSettings()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <div class="modal-header"><h2 class="modal-title">⚙️ 系统设置</h2><button class="modal-close" onclick="closeSettings()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
             <div class="form-group"><label class="form-label">TuShare API Token</label><input type="text" class="form-input" id="tushareToken" placeholder="请输入你的 TuShare Token"></div>
             <div class="form-group"><label class="form-label">数据源</label><select class="form-input" id="dataSource"><option value="mock">模拟数据（演示模式）</option><option value="tushare">TuShare API（需配置 Token）</option></select></div>
-            <div class="form-actions"><button class="btn-secondary" onclick="closeSettings()">取消</button><button class="btn-primary" onclick="saveSettings()" style="flex:1;">保存</button></div>
+            <div class="form-actions"><button class="btn-secondary" onclick="closeSettings()">取消</button><button class="btn-primary" onclick="saveSettings()">保存</button></div>
         </div>
     </div>
 
     <div class="modal-overlay" id="apiTestModal" onclick="closeApiTest(event)">
         <div class="modal" style="max-width:600px;">
-            <div class="modal-header"><h2 class="modal-title">API 接口测试</h2><button class="modal-close" onclick="closeApiTest()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <div class="modal-header"><h2 class="modal-title">🔌 API 接口测试</h2><button class="modal-close" onclick="closeApiTest()"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
             <div class="form-group"><label class="form-label">API 端点</label><select class="form-input" id="apiEndpoint"><option value="/api/health">GET /api/health - 健康检查</option><option value="/api/indices">GET /api/indices - 获取指数</option><option value="/api/sectors/flow">GET /api/sectors/flow - 板块资金流</option><option value="/api/recommendations">GET /api/recommendations - 股票推荐</option><option value="/api/capital-flow/300750.SZ">GET /api/capital-flow - 个股资金流</option></select></div>
             <div class="form-actions"><button class="btn-secondary" onclick="closeApiTest()">关闭</button><button class="btn-primary" onclick="testApi()">发送请求</button></div>
-            <div class="api-test-section">
-                <div class="api-test-title">快速测试</div>
-                <div class="api-test-grid">
-                    <button class="api-test-btn" onclick="quickTest('health')"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 13H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2z"/></svg>健康检查</button>
-                    <button class="api-test-btn" onclick="quickTest('connectivity')"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>连通性测试</button>
-                    <button class="api-test-btn" onclick="quickTest('data')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H5v-2h7v2zm7-4H5v-2h14v2zm0-4H5V7h14v2z"/></svg>数据获取</button>
-                    <button class="api-test-btn" onclick="quickTest('auth')"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>权限测试</button>
-                </div>
-            </div>
-            <div class="api-test-section"><div class="api-test-title">响应结果</div><div class="api-result" id="apiResult">等待请求...</div></div>
+            <div style="margin-top:20px;"><div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px;">快速测试</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"><button class="btn-ghost" style="padding:10px;" onclick="quickTest('health')">🏥 健康检查</button><button class="btn-ghost" style="padding:10px;" onclick="quickTest('connectivity')">📡 连通性测试</button><button class="btn-ghost" style="padding:10px;" onclick="quickTest('data')">📊 数据获取</button><button class="btn-ghost" style="padding:10px;" onclick="quickTest('auth')">🔒 权限测试</button></div></div>
+            <div style="margin-top:16px;"><div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px;">响应结果</div><pre id="apiResult" style="background:rgba(0,0,0,0.3);padding:12px;border-radius:6px;font-size:12px;max-height:200px;overflow:auto;color:var(--text-secondary);">等待请求...</pre></div>
         </div>
     </div>
 
-    <div class="toast" id="toast"><span class="toast-message" id="toastMessage">操作成功</span></div>
+    <div class="toast" id="toast"><span class="toast-icon" id="toastIcon">✅</span><span class="toast-message" id="toastMessage">操作成功</span></div>
 
     <script>
+        let positions = JSON.parse(localStorage.getItem('simulate_positions') || '[]');
+        let trades = JSON.parse(localStorage.getItem('simulate_trades') || '[]');
+        let cash = parseFloat(localStorage.getItem('simulate_cash') || '1000000');
         let config = { tushareToken: localStorage.getItem('tushareToken') || '', dataSource: localStorage.getItem('dataSource') || 'mock' };
-        let sectorChart = null;
+        const stockList = [
+            { code: '300750.SZ', name: '宁德时代', price: 412.56, industry: '电池' },
+            { code: '688981.SH', name: '中芯国际', price: 52.38, industry: '半导体' },
+            { code: '000858.SZ', name: '五粮液', price: 168.92, industry: '白酒' },
+            { code: '002594.SZ', name: '比亚迪', price: 268.45, industry: '汽车' },
+            { code: '600030.SH', name: '中信证券', price: 28.92, industry: '券商' },
+            { code: '601012.SH', name: '隆基绿能', price: 32.45, industry: '光伏' },
+            { code: '000001.SZ', name: '平安银行', price: 14.25, industry: '银行' },
+            { code: '600036.SH', name: '招商银行', price: 38.45, industry: '银行' }
+        ];
 
         document.addEventListener('DOMContentLoaded', () => {
             loadConfig();
-            renderSectorChart();
+            updateStats();
+            renderPositions();
+            renderTrades();
+            updateStockLists();
         });
 
         function loadConfig() {
@@ -283,10 +290,10 @@
             const dot = document.getElementById('apiStatusDot');
             const text = document.getElementById('apiStatusText');
             if (config.dataSource === 'tushare' && config.tushareToken) {
-                dot.className = 'status-dot active';
+                dot.style.backgroundColor = 'var(--bear)';
                 text.textContent = 'TuShare API';
             } else {
-                dot.className = 'status-dot';
+                dot.style.backgroundColor = 'var(--text-muted)';
                 text.textContent = '模拟数据';
             }
         }
@@ -305,26 +312,22 @@
             const endpoint = document.getElementById('apiEndpoint').value;
             const resultEl = document.getElementById('apiResult');
             resultEl.textContent = '请求中...';
-            resultEl.className = 'api-result';
-            fetch(endpoint)
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return response.json();
-                })
-                .then(data => {
-                    resultEl.textContent = JSON.stringify(data, null, 2);
-                    resultEl.className = 'api-result success';
-                    showToast('API 请求成功');
-                })
-                .catch(error => {
-                    resultEl.textContent = `错误：${error.message}\n\n注意：当前为静态页面，API 需要后端服务支持。\n本地运行：python -m http.server 8000`;
-                    resultEl.className = 'api-result error';
-                    showToast('API 请求失败', 'error');
-                });
+            
+            // 模拟 API 请求
+            setTimeout(() => {
+                resultEl.textContent = JSON.stringify({
+                    status: 'success',
+                    endpoint: endpoint,
+                    dataSource: config.dataSource,
+                    timestamp: new Date().toISOString(),
+                    message: '模拟数据 - 配置 TuShare Token 后显示真实数据'
+                }, null, 2);
+            }, 1000);
         }
 
         function quickTest(type) {
             const resultEl = document.getElementById('apiResult');
+            
             switch(type) {
                 case 'health':
                     resultEl.textContent = JSON.stringify({
@@ -337,8 +340,10 @@
                     resultEl.className = 'api-result success';
                     showToast('健康检查通过');
                     break;
+                    
                 case 'connectivity':
                     if (config.dataSource === 'tushare' && config.tushareToken) {
+                        // 测试 TuShare API 连通性
                         const startTime = Date.now();
                         fetch('https://api.tushare.pro', {
                             method: 'POST',
@@ -395,8 +400,10 @@
                         showToast('请先配置 TuShare Token', 'warning');
                     }
                     break;
+                    
                 case 'data':
                     if (config.dataSource === 'tushare' && config.tushareToken) {
+                        // 测试数据获取
                         fetch('https://api.tushare.pro', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -412,7 +419,7 @@
                             if (data.code === 0 && data.data?.items?.length > 0) {
                                 resultEl.textContent = JSON.stringify({
                                     status: 'success',
-                                    message: '数据获取成功',
+                                    message: '数据获取测试成功',
                                     records: data.data.items.length,
                                     sample: data.data.items[0],
                                     lastUpdate: new Date().toISOString()
@@ -450,8 +457,10 @@
                         showToast('请先配置 TuShare Token', 'warning');
                     }
                     break;
+                    
                 case 'auth':
                     if (config.dataSource === 'tushare' && config.tushareToken) {
+                        // 测试权限
                         fetch('https://api.tushare.pro', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -518,7 +527,7 @@
                     break;
             }
         }
-        
+
         function formatDate(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -526,65 +535,289 @@
             return `${year}${month}${day}`;
         }
 
-        function renderSectorChart() {
-            if (sectorChart) sectorChart.dispose();
-            sectorChart = echarts.init(document.getElementById('sectorChart'), 'dark', { backgroundColor: 'transparent' });
-            const option = {
-                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-                grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
-                xAxis: { type: 'value', axisLabel: { formatter: '{value}万', color: '#64748b' }, axisLine: { lineStyle: { color: '#3f3f46' } }, splitLine: { lineStyle: { color: '#27272a' } } },
-                yAxis: { type: 'category', data: ['半导体','人工智能','光伏设备','汽车整车','医疗器械','软件开发','电池','通信设备','券商','家电'], axisLabel: { color: '#94a3b8' } },
-                series: [{
-                    type: 'bar',
-                    data: [156, 123, 98, 85, 62, 51, 43, 32, 21, 12],
-                    barWidth: '60%',
-                    itemStyle: { borderRadius: [0, 8, 8, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(59, 130, 246, 0.8)' }, { offset: 1, color: 'rgba(139, 92, 246, 0.8)' }]) },
-                    emphasis: { itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(59, 130, 246, 1)' }, { offset: 1, color: 'rgba(139, 92, 246, 1)' }]) } }
-                }]
+        function updateStats() {
+            let positionValue = 0;
+            positions.forEach(p => {
+                const stock = stockList.find(s => s.code === p.code);
+                if (stock) positionValue += stock.price * p.shares;
+            });
+            const total = cash + positionValue;
+            const profit = total - 1000000;
+            const returnRate = (profit / 1000000) * 100;
+            
+            document.getElementById('totalAssets').textContent = '¥' + total.toLocaleString();
+            document.getElementById('availableCash').textContent = '¥' + cash.toLocaleString();
+            document.getElementById('positionValue').textContent = '¥' + positionValue.toLocaleString();
+            document.getElementById('totalProfit').textContent = (profit >= 0 ? '+' : '') + '¥' + profit.toLocaleString();
+            document.getElementById('totalAssetsChange').textContent = (returnRate >= 0 ? '+' : '') + returnRate.toFixed(2) + '%';
+            document.getElementById('totalAssetsChange').className = 'stat-change ' + (returnRate >= 0 ? 'bull' : 'bear');
+            document.getElementById('positionChange').textContent = (returnRate >= 0 ? '+' : '') + returnRate.toFixed(2) + '%';
+            document.getElementById('positionChange').className = 'stat-change ' + (returnRate >= 0 ? 'bull' : 'bear');
+            document.getElementById('profitChange').textContent = (returnRate >= 0 ? '+' : '') + returnRate.toFixed(2) + '%';
+            document.getElementById('profitChange').className = 'stat-change ' + (returnRate >= 0 ? 'bull' : 'bear');
+        }
+
+        function renderPositions() {
+            const tbody = document.getElementById('positionTable');
+            if (positions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">💼</div><div class="empty-state-title">暂无持仓</div><div class="empty-state-desc">点击下方按钮开始交易</div><button class="btn-primary" onclick="openTradeModal()">+ 添加持仓</button></td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = positions.map(p => {
+                const stock = stockList.find(s => s.code === p.code);
+                const currentPrice = stock?.price || p.costPrice;
+                const marketValue = currentPrice * p.shares;
+                const profit = marketValue - (p.costPrice * p.shares);
+                const returnRate = ((currentPrice - p.costPrice) / p.costPrice) * 100;
+                const isProfit = profit >= 0;
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="stock-name-cell">
+                                <span class="stock-name-cn">${p.name}</span>
+                                <span class="stock-code">${p.code}</span>
+                            </div>
+                        </td>
+                        <td>${p.shares.toLocaleString()}</td>
+                        <td style="font-family:'JetBrains Mono';">¥${p.costPrice.toFixed(2)}</td>
+                        <td style="font-family:'JetBrains Mono';">¥${currentPrice.toFixed(2)}</td>
+                        <td style="font-family:'JetBrains Mono';">¥${marketValue.toLocaleString()}</td>
+                        <td style="font-family:'JetBrains Mono';color:${isProfit ? 'var(--bear)' : 'var(--bull)}">${isProfit ? '+' : ''}¥${profit.toLocaleString()}</td>
+                        <td><span class="change-badge ${isProfit ? 'bull' : 'bear'}">${isProfit ? '↑' : '↓'} ${Math.abs(returnRate).toFixed(2)}%</span></td>
+                        <td><button class="btn-ghost" onclick="sellStock('${p.code}')" style="padding:6px 10px;font-size:12px;">🗑️ 卖出</button></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderTrades() {
+            const tbody = document.getElementById('tradeTable');
+            if (trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-title">暂无交易记录</div><div class="empty-state-desc">开始交易后将显示历史记录</div></td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = trades.map(t => {
+                const isProfit = t.profit > 0;
+                return `
+                    <tr>
+                        <td>${t.date}</td>
+                        <td>
+                            <div class="stock-name-cell">
+                                <span class="stock-name-cn">${t.name}</span>
+                                <span class="stock-code">${t.code}</span>
+                            </div>
+                        </td>
+                        <td style="color:${t.type === '买入' ? 'var(--bear)' : 'var(--bull)}">${t.type}</td>
+                        <td>${t.shares.toLocaleString()}</td>
+                        <td style="font-family:'JetBrains Mono';">¥${t.price.toFixed(2)}</td>
+                        <td style="font-family:'JetBrains Mono';">¥${t.amount.toLocaleString()}</td>
+                        <td style="font-family:'JetBrains Mono';color:${isProfit ? 'var(--bear)' : 'var(--bull)}">${t.profit ? (t.profit >= 0 ? '+' : '') + '¥' + t.profit.toLocaleString() : '--'}</td>
+                        <td>${t.remarks || '--'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStockLists() {
+            const selects = [document.getElementById('stockSelect'), document.getElementById('modalStockSelect')];
+            selects.forEach(select => {
+                select.innerHTML = stockList.map(s => `<option value="${s.code}">${s.name} (${s.code})</option>`).join('');
+            });
+            
+            // 更新价格显示
+            document.getElementById('stockSelect').onchange = () => {
+                const code = document.getElementById('stockSelect').value;
+                const stock = stockList.find(s => s.code === code);
+                if (stock) {
+                    document.getElementById('refPrice').value = '¥' + stock.price.toFixed(2);
+                    updateEstimatedAmount();
+                }
             };
-            sectorChart.setOption(option);
-            window.addEventListener('resize', () => sectorChart.resize());
+            
+            document.getElementById('modalStockSelect').onchange = () => {
+                const code = document.getElementById('modalStockSelect').value;
+                const stock = stockList.find(s => s.code === code);
+                if (stock) {
+                    document.getElementById('modalRefPrice').value = '¥' + stock.price.toFixed(2);
+                    updateModalEstimatedAmount();
+                }
+            };
         }
 
-        function searchStock() {
-            const query = document.querySelector('.search-input').value.trim().toLowerCase();
-            showToast(`找到 ${Math.floor(Math.random() * 10) + 1} 只股票`, 'success');
+        function updateEstimatedAmount() {
+            const shares = parseInt(document.getElementById('shares').value) || 0;
+            const price = parseFloat(document.getElementById('refPrice').value.replace('¥', '')) || 0;
+            document.getElementById('estimatedAmount').value = '¥' + (shares * price).toLocaleString();
         }
 
-        function filterByIndustry() {
-            const industry = document.getElementById('industryFilter').value;
-            showToast(industry ? `筛选行业：${industry}` : '显示全部行业', 'success');
+        function updateModalEstimatedAmount() {
+            const shares = parseInt(document.getElementById('modalShares').value) || 0;
+            const price = parseFloat(document.getElementById('modalRefPrice').value.replace('¥', '')) || 0;
+            document.getElementById('modalEstimatedAmount').value = '¥' + (shares * price).toLocaleString();
         }
 
-        function refreshData() {
-            showToast('数据已更新', 'success');
+        document.getElementById('shares')?.addEventListener('input', updateEstimatedAmount);
+        document.getElementById('modalShares')?.addEventListener('input', updateModalEstimatedAmount);
+
+        function openTradeModal() {
+            document.getElementById('tradeModal').classList.add('active');
         }
 
-        function exportChart() {
-            if (sectorChart) {
-                const url = sectorChart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#1e293b' });
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = '板块资金流向.png';
-                a.click();
-                showToast('图表已导出', 'success');
+        function closeTradeModal(event) {
+            if (!event || event.target === document.getElementById('tradeModal')) {
+                document.getElementById('tradeModal').classList.remove('active');
+                document.getElementById('modalShares').value = '';
+                document.getElementById('modalEstimatedAmount').value = '';
             }
         }
 
-        function exportStocks() {
-            const headers = ['排名','代码','名称','价格','涨跌幅','评分','净流入','连续流入','行业','建议'];
-            const rows = [['1','300750.SZ','宁德时代','412.56','2.34%','92.5','8.50亿','5天','电池','STRONG BUY'],['2','688981.SH','中芯国际','52.38','4.56%','88.3','12.30亿','4天','半导体','STRONG BUY']];
-            const csv = '\ufeff' + [headers,...rows].map(r => r.join(',')).join('\n');
+        function executeTrade() {
+            const type = document.getElementById('tradeType').value;
+            const code = document.getElementById('stockSelect').value;
+            const shares = parseInt(document.getElementById('shares').value);
+            const stock = stockList.find(s => s.code === code);
+            
+            if (!stock || shares < 100 || shares % 100 !== 0) {
+                showToast('数量必须是 100 的整数倍', 'error');
+                return;
+            }
+
+            const amount = shares * stock.price;
+
+            if (type === 'buy') {
+                if (amount > cash) {
+                    showToast('可用资金不足', 'error');
+                    return;
+                }
+                const existing = positions.find(p => p.code === code);
+                if (existing) {
+                    existing.shares += shares;
+                    existing.costPrice = ((existing.costPrice * existing.shares - existing.shares * existing.costPrice) + amount) / existing.shares;
+                } else {
+                    positions.push({ code, name: stock.name, shares, costPrice: stock.price, industry: stock.industry });
+                }
+                cash -= amount;
+            } else {
+                const pos = positions.find(p => p.code === code);
+                if (!pos || pos.shares < shares) {
+                    showToast('持仓数量不足', 'error');
+                    return;
+                }
+                pos.shares -= shares;
+                if (pos.shares === 0) positions = positions.filter(p => p.code !== code);
+                cash += amount;
+            }
+
+            trades.unshift({
+                date: new Date().toLocaleDateString('zh-CN'),
+                type: type === 'buy' ? '买入' : '卖出',
+                code, name: stock.name, shares, price: stock.price, amount, 
+                profit: type === 'sell' ? (stock.price - (pos?.costPrice || stock.price)) * shares : 0,
+                remarks: '模拟交易'
+            });
+
+            saveData();
+            closeTradeModal();
+            updateStats();
+            renderPositions();
+            renderTrades();
+            showToast(type === 'buy' ? '买入成功' : '卖出成功');
+        }
+
+        function executeModalTrade() {
+            document.getElementById('tradeType').value = document.getElementById('modalTradeType').value;
+            document.getElementById('stockSelect').value = document.getElementById('modalStockSelect').value;
+            document.getElementById('shares').value = document.getElementById('modalShares').value;
+            executeTrade();
+        }
+
+        function sellStock(code) {
+            const pos = positions.find(p => p.code === code);
+            if (!pos) return;
+            
+            if (confirm(`确定要卖出 ${pos.name} (${pos.code}) 吗？`)) {
+                const amount = pos.shares * stockList.find(s => s.code === code).price;
+                cash += amount;
+                
+                trades.unshift({
+                    date: new Date().toLocaleDateString('zh-CN'),
+                    type: '卖出',
+                    code: pos.code,
+                    name: pos.name,
+                    shares: pos.shares,
+                    price: stockList.find(s => s.code === code).price,
+                    amount,
+                    profit: (stockList.find(s => s.code === code).price - pos.costPrice) * pos.shares,
+                    remarks: '手动卖出'
+                });
+                
+                positions = positions.filter(p => p.code !== code);
+                saveData();
+                updateStats();
+                renderPositions();
+                renderTrades();
+                showToast('持仓已卖出');
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('simulate_positions', JSON.stringify(positions));
+            localStorage.setItem('simulate_trades', JSON.stringify(trades));
+            localStorage.setItem('simulate_cash', cash.toString());
+        }
+
+        function refreshData() {
+            // 模拟价格变动
+            positions.forEach(p => {
+                const stock = stockList.find(s => s.code === p.code);
+                if (stock) {
+                    const change = (Math.random() - 0.5) * 0.05; // ±2.5% 变动
+                    stock.price = stock.price * (1 + change);
+                }
+            });
+            updateStats();
+            renderPositions();
+            renderTrades();
+            showToast('数据已刷新');
+        }
+
+        function exportPortfolio() {
+            const headers = ['股票代码','股票名称','持仓数量','成本价','当前价','市值','盈亏','收益率','行业'];
+            const rows = positions.map(p => {
+                const stock = stockList.find(s => s.code === p.code);
+                const currentPrice = stock?.price || p.costPrice;
+                const marketValue = currentPrice * p.shares;
+                const profit = marketValue - (p.costPrice * p.shares);
+                const returnRate = ((currentPrice - p.costPrice) / p.costPrice) * 100;
+                return [p.code, p.name, p.shares, p.costPrice.toFixed(2), currentPrice.toFixed(2), marketValue.toFixed(2), profit.toFixed(2), returnRate.toFixed(2) + '%', p.industry];
+            });
+            const csv = '\ufeff' + [headers, ...rows].map(r => r.join(',')).join('\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `资金推荐_${new Date().toLocaleDateString()}.csv`;
+            a.download = `模拟持仓_${new Date().toLocaleDateString()}.csv`;
             a.click();
-            showToast('列表已导出', 'success');
+            showToast('持仓已导出');
+        }
+
+        function exportTrades() {
+            const headers = ['日期','股票代码','股票名称','操作','数量','价格','金额','盈亏','备注'];
+            const rows = trades.map(t => [t.date, t.code, t.name, t.type, t.shares, t.price, t.amount, t.profit || 0, t.remarks || '']);
+            const csv = '\ufeff' + [headers, ...rows].map(r => r.join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `模拟交易_${new Date().toLocaleDateString()}.csv`;
+            a.click();
+            showToast('交易记录已导出');
         }
 
         function showToast(message, type = 'success') {
-            const icons = { success: '✓', error: '✕', info: 'ℹ' };
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            document.getElementById('toastIcon').textContent = icons[type];
             document.getElementById('toastMessage').textContent = message;
             document.getElementById('toast').classList.add('show');
             setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);

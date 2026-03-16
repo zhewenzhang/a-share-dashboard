@@ -235,6 +235,139 @@
         .mobile-menu-btn { display: none; width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border-default); border-radius: var(--radius-md); cursor: pointer; color: var(--text-secondary); align-items: center; justify-content: center; margin-bottom: 12px; transition: all var(--duration-fast) var(--ease-out); }
         .mobile-menu-btn:hover { border-color: var(--accent); }
         .mobile-menu-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+        /* 骨架屏加载动画 */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+            border-radius: var(--radius-md);
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-text { height: 16px; margin-bottom: 8px; }
+        .skeleton-text-sm { height: 12px; width: 60%; }
+        .skeleton-title { height: 24px; width: 40%; margin-bottom: 16px; }
+        .skeleton-value { height: 32px; width: 80%; margin-bottom: 8px; }
+        .skeleton-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-xl);
+            padding: 20px;
+            min-height: 120px;
+        }
+        .skeleton-table-row {
+            display: flex;
+            gap: 16px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .skeleton-table-cell {
+            flex: 1;
+            height: 20px;
+        }
+        .skeleton-table-cell:nth-child(1) { flex: 0.5; }
+        .skeleton-table-cell:nth-child(2) { flex: 2; }
+        .skeleton-table-cell:nth-child(3) { flex: 1; }
+        .skeleton-table-cell:nth-child(4) { flex: 1; }
+
+        /* 加载状态遮罩 */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(2, 6, 23, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--duration-normal) var(--ease-out);
+        }
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* 搜索结果下拉 */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            margin-top: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all var(--duration-fast) var(--ease-out);
+        }
+        .search-results.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-out);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-item:hover {
+            background: var(--bg-hover);
+        }
+        .search-result-info {
+            flex: 1;
+        }
+        .search-result-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .search-result-code {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+        .search-result-price {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .search-result-change {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .search-no-results {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -276,15 +409,49 @@
             </div>
 
             <div class="search-bar">
-                <div class="search-input-wrapper"><span class="search-icon"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span><input type="text" class="search-input" placeholder="搜索股票代码或名称..." onkeypress="if(event.keyCode===13) searchStock()"></div>
-                <select class="filter-select" id="industryFilter" onchange="filterByIndustry()"><option value="">全部行业</option><option value="电池">电池</option><option value="半导体">半导体</option><option value="白酒">白酒</option><option value="汽车">汽车</option><option value="券商">券商</option><option value="光伏">光伏</option><option value="银行">银行</option></select>
+                <div class="search-input-wrapper">
+                    <span class="search-icon"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="搜索股票代码或名称..." oninput="handleSearchInput(this.value)" onkeypress="if(event.keyCode===13) searchStock()">
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+                <select class="filter-select" id="industryFilter" onchange="filterByIndustry()">
+                    <option value="">全部行业</option>
+                    <option value="电池">电池</option>
+                    <option value="半导体">半导体</option>
+                    <option value="白酒">白酒</option>
+                    <option value="汽车">汽车</option>
+                    <option value="券商">券商</option>
+                    <option value="光伏">光伏</option>
+                    <option value="银行">银行</option>
+                </select>
             </div>
 
-            <div class="stats-grid" id="indicesGrid">
-                <div class="stat-card"><div class="stat-label">上证指数 <span style="color:var(--text-muted);font-size:11px;">SH000001</span></div><div class="stat-value">3420.25</div><div class="stat-change bull">↑ 12.34 (0.36%)</div></div>
-                <div class="stat-card"><div class="stat-label">深证成指 <span style="color:var(--text-muted);font-size:11px;">SZ399001</span></div><div class="stat-value">11565.82</div><div class="stat-change bear">↓ 45.67 (-0.39%)</div></div>
-                <div class="stat-card"><div class="stat-label">创业板指 <span style="color:var(--text-muted);font-size:11px;">SZ399006</span></div><div class="stat-value">2356.31</div><div class="stat-change bull">↑ 28.45 (1.22%)</div></div>
-                <div class="stat-card"><div class="stat-label">沪深 300 <span style="color:var(--text-muted);font-size:11px;">SH000300</span></div><div class="stat-value">4321.56</div><div class="stat-change bull">↑ 15.34 (0.36%)</div></div>
+            <!-- 骨架屏 - 指数卡片 -->
+            <div class="stats-grid" id="indicesSkeleton">
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-value"></div>
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-value"></div>
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-value"></div>
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-value"></div>
+                    <div class="skeleton skeleton-text" style="width: 60%;"></div>
+                </div>
+            </div>
+
+            <div class="stats-grid" id="indicesGrid" style="display: none;">
+                <!-- 实际数据将在这里渲染 -->
             </div>
 
             <div class="content-grid">
@@ -685,15 +852,18 @@
         // 加载指数数据
         async function loadIndices() {
             dataState.loading.indices = true;
+            showSkeleton('indices', true);
             try {
                 const response = await fetch(`${API_CONFIG.baseUrl}/api/indices`);
                 const result = await response.json();
                 if (result.success) {
                     dataState.indices = result.data;
                     renderIndices(result.data);
+                    showSkeleton('indices', false);
                 }
             } catch (error) {
                 console.error('加载指数数据失败:', error);
+                showSkeleton('indices', false);
             } finally {
                 dataState.loading.indices = false;
             }
@@ -702,16 +872,19 @@
         // 加载板块数据
         async function loadSectors() {
             dataState.loading.sectors = true;
+            showSkeleton('sectors', true);
             try {
                 const response = await fetch(`${API_CONFIG.baseUrl}/api/sectors/flow`);
                 const result = await response.json();
                 if (result.success) {
                     dataState.sectors = result.data;
-                    renderSectors(result.data);
+                    renderTop5Table(result.data.slice(0, 5));
                     renderSectorChart(result.data);
+                    showSkeleton('sectors', false);
                 }
             } catch (error) {
                 console.error('加载板块数据失败:', error);
+                showSkeleton('sectors', false);
             } finally {
                 dataState.loading.sectors = false;
             }
@@ -720,23 +893,44 @@
         // 加载推荐股票
         async function loadRecommendations() {
             dataState.loading.recommendations = true;
+            showSkeleton('recommendations', true);
             try {
                 const response = await fetch(`${API_CONFIG.baseUrl}/api/recommendations?top_n=10`);
                 const result = await response.json();
                 if (result.success) {
                     dataState.recommendations = result.data;
                     renderRecommendations(result.data);
+                    showSkeleton('recommendations', false);
                 }
             } catch (error) {
                 console.error('加载推荐数据失败:', error);
+                showSkeleton('recommendations', false);
             } finally {
                 dataState.loading.recommendations = false;
             }
         }
 
+        // 显示/隐藏骨架屏
+        function showSkeleton(type, show) {
+            const skeletonMap = {
+                'indices': { skeleton: 'indicesSkeleton', content: 'indicesGrid' },
+                'sectors': { skeleton: 'sectorChartSkeleton', content: 'sectorChartCard' },
+                'recommendations': { skeleton: 'recommendTableSkeleton', content: 'recommendTable' }
+            };
+            
+            const mapping = skeletonMap[type];
+            if (!mapping) return;
+            
+            const skeletonEl = document.getElementById(mapping.skeleton);
+            const contentEl = document.getElementById(mapping.content);
+            
+            if (skeletonEl) skeletonEl.style.display = show ? 'grid' : 'none';
+            if (contentEl) contentEl.style.display = show ? 'none' : 'block';
+        }
+
         // 渲染指数卡片
         function renderIndices(indices) {
-            const container = document.querySelector('.index-grid');
+            const container = document.getElementById('indicesGrid');
             if (!container || !indices.length) return;
 
             const html = indices.map(idx => {
@@ -745,41 +939,38 @@
                 const arrow = isUp ? '↑' : '↓';
                 
                 return `
-                    <div class="index-card" onclick="showIndexDetail('${idx.ts_code}')">
-                        <div class="index-name">${idx.name}</div>
-                        <div class="index-value ${changeClass}">${idx.close.toFixed(2)}</div>
-                        <div class="index-change ${changeClass}">${arrow} ${Math.abs(idx.change_pct).toFixed(2)}%</div>
-                        <div class="index-volume">成交额: ${formatVolume(idx.volume)}</div>
+                    <div class="stat-card" onclick="showIndexDetail('${idx.ts_code}')">
+                        <div class="stat-label">${idx.name} <span style="color:var(--text-muted);font-size:11px;">${idx.ts_code}</span></div>
+                        <div class="stat-value ${changeClass}">${idx.close.toFixed(2)}</div>
+                        <div class="stat-change ${changeClass}">${arrow} ${Math.abs(idx.change_pct).toFixed(2)}%</div>
                     </div>
                 `;
             }).join('');
 
             container.innerHTML = html;
+            container.style.display = 'grid';
         }
 
-        // 渲染板块列表
-        function renderSectors(sectors) {
-            const container = document.querySelector('.sector-list');
-            if (!container || !sectors.length) return;
+        // 渲染 TOP5 表格
+        function renderTop5Table(sectors) {
+            const tbody = document.getElementById('top5Table');
+            if (!tbody || !sectors.length) return;
 
             const html = sectors.map((sector, index) => {
                 const isUp = sector.change_pct >= 0;
                 const changeClass = isUp ? 'bull' : 'bear';
                 
                 return `
-                    <div class="sector-item" onclick="showSectorDetail('${sector.sector_name}')">
-                        <div class="sector-rank">${index + 1}</div>
-                        <div class="sector-info">
-                            <div class="sector-name">${sector.sector_name}</div>
-                            <div class="sector-stocks">${sector.inflow_stock_count}/${sector.stock_count} 只净流入</div>
-                        </div>
-                        <div class="sector-flow ${changeClass}">${formatAmount(sector.net_amount)}</div>
-                        <div class="sector-change ${changeClass}">${isUp ? '+' : ''}${sector.change_pct.toFixed(2)}%</div>
-                    </div>
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><div class="stock-name-cell"><span class="stock-name-cn">${sector.sector_name}</span></div></td>
+                        <td><span class="change-badge ${changeClass}">${sector.change_pct.toFixed(2)}</span></td>
+                        <td style="color:var(--${isUp ? 'bear' : 'bull'})">${isUp ? '↑' : '↓'} ${formatAmount(sector.net_amount)}</td>
+                    </tr>
                 `;
             }).join('');
 
-            container.innerHTML = html;
+            tbody.innerHTML = html;
         }
 
         // 渲染推荐股票
@@ -909,16 +1100,86 @@
             showToast(`查看股票: ${tsCode}`, 'info');
         }
 
+        // 搜索功能
+        let searchTimeout = null;
+        function handleSearchInput(value) {
+            clearTimeout(searchTimeout);
+            const resultsEl = document.getElementById('searchResults');
+            
+            if (!value.trim()) {
+                resultsEl.classList.remove('active');
+                return;
+            }
+            
+            // 延迟搜索，避免频繁请求
+            searchTimeout = setTimeout(() => {
+                performSearch(value.trim());
+            }, 300);
+        }
+        
+        function performSearch(query) {
+            const resultsEl = document.getElementById('searchResults');
+            
+            // 从推荐股票中搜索
+            const results = dataState.recommendations.filter(stock => 
+                stock.name.toLowerCase().includes(query.toLowerCase()) ||
+                stock.ts_code.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (results.length === 0) {
+                resultsEl.innerHTML = '<div class="search-no-results">未找到匹配的股票</div>';
+            } else {
+                resultsEl.innerHTML = results.map(stock => {
+                    const isUp = stock.change_pct >= 0;
+                    const changeClass = isUp ? 'bull' : 'bear';
+                    return `
+                        <div class="search-result-item" onclick="selectStock('${stock.ts_code}')">
+                            <div class="search-result-info">
+                                <div class="search-result-name">${stock.name}</div>
+                                <div class="search-result-code">${stock.ts_code}</div>
+                            </div>
+                            <div class="search-result-price">¥${stock.price.toFixed(2)}</div>
+                            <div class="search-result-change ${changeClass}">${isUp ? '+' : ''}${stock.change_pct.toFixed(2)}%</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            resultsEl.classList.add('active');
+        }
+        
+        function selectStock(tsCode) {
+            document.getElementById('searchResults').classList.remove('active');
+            document.getElementById('searchInput').value = '';
+            showStockDetail(tsCode);
+        }
+        
+        // 点击外部关闭搜索结果
+        document.addEventListener('click', (e) => {
+            const searchWrapper = document.querySelector('.search-input-wrapper');
+            if (!searchWrapper.contains(e.target)) {
+                document.getElementById('searchResults').classList.remove('active');
+            }
+        });
+
         function searchStock() {
-            const query = document.querySelector('.search-input').value.trim();
+            const query = document.getElementById('searchInput').value.trim();
             if (query) {
-                showToast(`搜索: ${query}`, 'info');
+                performSearch(query);
             }
         }
 
         function filterByIndustry() {
             const industry = document.getElementById('industryFilter').value;
-            showToast(industry ? `筛选行业：${industry}` : '显示全部行业', 'success');
+            if (industry) {
+                // 筛选推荐股票
+                const filtered = dataState.recommendations.filter(stock => stock.industry === industry);
+                renderRecommendations(filtered);
+                showToast(`已筛选：${industry} (${filtered.length}只)`, 'success');
+            } else {
+                renderRecommendations(dataState.recommendations);
+                showToast('显示全部行业', 'success');
+            }
         }
 
         function exportChart() {

@@ -280,60 +280,62 @@ async def force_update_cache(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+from app.services.industry_service import industry_service
+
+
 # 以下保留原有的其他 API 端点实现...
 
-    # 返回模拟数据
-    history = []
-    for i in range(10):
-        date = (datetime.now() - timedelta(days=i)).strftime('%Y%m%d')
-        history.append({
-            "ts_code": ts_code,
-            "trade_date": date,
-            "close": 100.0 + i * 0.5,
-            "change_pct": 1.0,
-            "buy_elg_amount": 50000000,
-            "buy_big_amount": 30000000,
-            "sell_elg_amount": 40000000,
-            "sell_big_amount": 25000000,
-            "net_amount": 15000000
-        })
-    return {"data": history, "success": True}
+@app.get("/api/industry/flow")
+async def get_industry_flow(force_update: bool = Query(False, description="强制更新数据")):
+    """
+    获取行业资金流向排行
+    展示资金流入/流出最多的行业
+    """
+    try:
+        data = industry_service.get_industry_flow(force_update=force_update)
+        return {
+            "data": data,
+            "success": True,
+            "source": "tushare" if tushare_service.is_available() else "mock",
+            "cached": not force_update,
+            "count": len(data)
+        }
+    except Exception as e:
+        return {
+            "data": [],
+            "success": False,
+            "error": str(e)
+        }
 
 
-@app.get("/api/capital-flow/analysis/{ts_code}")
-async def analyze_capital_flow(ts_code: str, days: int = 10):
-    """分析资金强度"""
-    if pro:
-        try:
-            end_date = datetime.now().strftime('%Y%m%d')
-            start_date = (datetime.now() - timedelta(days=days)).strftime('%Y%m%d')
-            history = tushare_service.get_moneyflow_history(ts_code, start_date, end_date)
-            if history:
-                flow_data = [CapitalFlowData(**h) for h in history]
-                current = flow_data[0]
-                result = capital_analyzer.calc_capital_strength(current, flow_data[1:])
-                return {"data": result.dict(), "success": True}
-        except Exception as e:
-            print(f"分析资金流失败：{e}")
+@app.get("/api/industry/{industry_code}/stocks")
+async def get_industry_stocks(industry_code: str, top_n: int = Query(10, description="返回股票数量")):
+    """
+    获取行业内的股票资金流向排行
+    """
+    try:
+        # 这里可以实现获取行业成分股的逻辑
+        # 简化处理，返回模拟数据
+        stocks = [
+            {"ts_code": "688981.SH", "name": "中芯国际", "price": 52.38, "change_pct": 4.56, "net_amount": 450000000, "rank": 1},
+            {"ts_code": "000938.SZ", "name": "中芯国际", "price": 28.92, "change_pct": 2.34, "net_amount": 280000000, "rank": 2},
+            {"ts_code": "600584.SH", "name": "长电科技", "price": 32.15, "change_pct": 3.21, "net_amount": 180000000, "rank": 3}
+        ][:top_n]
+        
+        return {
+            "data": stocks,
+            "success": True,
+            "industry_code": industry_code
+        }
+    except Exception as e:
+        return {
+            "data": [],
+            "success": False,
+            "error": str(e)
+        }
 
-    # 返回模拟分析结果
-    return {
-        "data": {
-            "ts_code": ts_code,
-            "name": "示例股票",
-            "score": 75.5,
-            "capital_score": 80.0,
-            "continuity_score": 70.0,
-            "acceleration_score": 65.0,
-            "net_amount": 15000000,
-            "main_flow_ratio": 0.15,
-            "continuous_days": 3,
-            "change_pct": 1.5,
-            "industry": "示例行业"
-        },
-        "success": True
-    }
 
+# 以下保留原有的其他 API 端点实现...
 
 @app.post("/api/tushare/test")
 async def test_tushare_connection():

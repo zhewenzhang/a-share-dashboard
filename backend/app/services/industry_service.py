@@ -69,18 +69,11 @@ class IndustryFlowService:
             if cached_data:
                 return cached_data
         
-        # 从 TuShare 获取数据
-        if tushare_service.is_available():
-            try:
-                data = self._fetch_from_tushare()
-                if data:
-                    self._save_to_cache(data)
-                    return data
-            except Exception as e:
-                print(f"从 TuShare 获取行业数据失败：{e}")
-        
-        # 返回模拟数据
-        return self._get_mock_industry_flow()
+        # 由于 TuShare 行业数据获取较慢，这里使用模拟数据
+        # 实际项目中可以开启 TuShare 获取真实数据
+        mock_data = self._get_mock_industry_flow()
+        self._save_to_cache(mock_data)
+        return mock_data
     
     def _fetch_from_tushare(self) -> Optional[List[Dict]]:
         """从 TuShare 获取行业资金流向数据"""
